@@ -22,7 +22,8 @@ Type `/fv`. Blacklist, Friends, and Alerts are the three tabs. Both friends must
 
 ### Links
 
-Put the source repository URL at the bottom of the CurseForge description once the remote is public.
+Local source: `E:\OneDrive\Private\Cursor\ForeverVendetta`.
+Put the public clone URL at the bottom of the CurseForge description once you publish the GitHub remote.
 
 ## File changelog
 
