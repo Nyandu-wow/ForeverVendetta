@@ -105,6 +105,7 @@ function A.untrust(name)
     A.store.friends[who.key] = nil
     if not A.store.owners[who.key] then A.store.reports[who.key] = nil end
     if type(A.store.lastReceived) == "table" then A.store.lastReceived[who.key] = nil end
+    if A.dropPeer then A.dropPeer(who.key) end
     A.changed()
     return true
 end

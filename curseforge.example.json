@@ -1,0 +1,7 @@
+{
+  "projectId": 0,
+  "endpoint": "wow",
+  "releaseType": "beta",
+  "gameVersionNames": ["1.60.1"],
+  "displayNamePrefix": "Forever Vendetta"
+}

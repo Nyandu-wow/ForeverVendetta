@@ -96,7 +96,7 @@ local function boot(name, saved, setup)
     if setup then setup(env) end
     for _, file in ipairs({
         "Core/Util.lua", "Core/Identity.lua", "Core/Store.lua", "Core/Detect.lua",
-        "Comms.lua", "UI.lua", "ForeverVendetta.lua",
+        "Comms.lua", "UI/Window.lua", "ForeverVendetta.lua",
     }) do
         local chunk
         if _VERSION == "Lua 5.1" then chunk = assert(loadfile(ROOT .. file)); setfenv(chunk, env)
@@ -615,6 +615,26 @@ test("Untrust clears received stamps for that friend", function()
     x.a.store.lastReceived = { ["bob stone-forever"] = 123 }
     check(x.a.untrust("Bob Stone"))
     eq(x.a.store.lastReceived["bob stone-forever"], nil)
+end)
+
+test("Untrust drops queued whispers immediately", function()
+    local x = boot("Alice River")
+    x.a.trust("Bob Stone")
+    x.a.report("Grim Reaper", "Private")
+    check(x.a.pendingCount() > 0)
+    check(x.a.untrust("Bob Stone"))
+    eq(x.a.pendingCount(), 0)
+    x.a.pump(1)
+    eq(#x.out, 0)
+end)
+
+test("Incoming packets with junk fields are rejected", function()
+    local x = boot("Alice River")
+    x.a.trust("Bob Stone")
+    x.a.receive(x.a.PREFIX, "1|E|1|0|NOPE|Grim Reaper|Forever|x", "WHISPER", "Bob Stone-Forever")
+    eq(#x.a.entries(), 0)
+    x.a.receive(x.a.PREFIX, "1|E|1|0|AVOID|Grim Reaper|Forever|ok", "WHISPER", "Bob Stone-Forever")
+    eq(#x.a.entries(), 1)
 end)
 
 print("Passed " .. passed .. " Forever Vendetta regression tests.")

@@ -1,5 +1,10 @@
 # Forever Vendetta
 
+## 0.1.8
+
+- UI lives under `UI/Window.lua`. CurseForge upload script and original 400×400 avatar added.
+- Security: untrust drops queued whispers immediately; inbound packets re-sanitize every field.
+
 ## 0.1.7
 
 - Code laid out under `Core/` (util, identity, store, detect), with `ForeverVendetta.lua` as the entry file.

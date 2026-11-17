@@ -30,6 +30,21 @@ local function enqueue(peer, text)
     return true
 end
 
+-- Drop queued whispers as soon as trust ends so a late pump cannot send them.
+function A.dropPeer(key)
+    if not A.plain(key, "string") then return end
+    local kept = {}
+    for _, item in ipairs(queue) do
+        if item.peer.key ~= key then
+            kept[#kept + 1] = item
+        else
+            queued[item.id] = nil
+        end
+    end
+    queue = kept
+    lastRequest[key], lastHello[key], lastSnapshot[key] = nil, nil, nil
+end
+
 function A.sync()
     if not A.ready then return end
     local hash = digest(A.store.reports[A.me.key])
@@ -71,6 +86,10 @@ function A.receive(prefix, text, channel, sender)
     end
     local rev, deleted, mode, name, realm, note = text:match("^1|E|(%d+)|([01])|([^|]+)|([^|]+)|([^|]+)|([^|]*)$")
     if not rev then return end
+    -- Re-sanitize every field. A withdrawn packet never carries a reason.
+    name, realm, note = A.text(name, 64), A.text(realm, 48), A.text(note or "", 96)
+    if not name or not realm or not note or not A.modes[mode] then return end
+    if deleted == "1" then note = "" end
     local r = { rev = tonumber(rev), deleted = deleted == "1", mode = mode, name = name, realm = realm, note = note }
     if A.merge(who.key, r) then
         local stamp = A.call(time)

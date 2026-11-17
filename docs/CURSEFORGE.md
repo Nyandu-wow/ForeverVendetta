@@ -1,26 +1,27 @@
 ﻿# Forever Vendetta — CurseForge project page
 
-Upload `dist/ForeverVendetta-0.1.7.zip` from `powershell -File package.ps1`.
+Upload `dist/ForeverVendetta-0.1.8.zip` (or run `node scripts/upload-curseforge.mjs` after setup).
 
 - Game version: **WoW Forever 1.60.1**
-- Release type: **Beta** for the first public checkup (or Alpha if you want it hidden from the default client list)
-- Category: Miscellaneous / Unit Frames / Combat (pick the closest WoW category; this is a friends-only notepad with visible-unit warnings)
-- Source repository: https://github.com/Nyandu-wow/ForeverVendetta
-- ForeverLAN is a different project: https://github.com/Nyandu-wow/ForeverLAN
+- Release type: **Beta** for first moderation
+- Category: Miscellaneous (closest fit for a friends-only notepad with visible-unit warnings)
+- Avatar: `media/avatar-400.png` (original 400×400 PNG)
+- Source: https://github.com/Nyandu-wow/ForeverVendetta
+- ForeverLAN is separate: https://github.com/Nyandu-wow/ForeverLAN
 
-Read `POLICY.md` before submitting. The zip must contain only `ForeverVendetta/` with TOC, four Lua files, README, CHANGELOG, and LICENSE.
+Read `POLICY.md`, `PRIVACY.md`, and `SECURITY.md` before submitting.
 
 ## Summary (≤ 1 sentence)
 
 Friends-only enemy notes for WoW Forever, shared by whisper, with a warning when a listed player is already visible.
 
-## Description (English first — paste into CurseForge)
+## Description (English first)
 
 ### What it does
 
 Forever Vendetta is a small, free addon for a private group of friends on **WoW Forever**. You keep short notes about enemy players (Avenge, Avoid, or Watch). Friends you explicitly add by full character name can share those notes with each other.
 
-When a listed enemy is already visible as a nameplate, target, focus, or mouseover, the addon can play the built-in raid-warning sound, show a short banner, and print a chat line. Instance warnings stay off unless you turn them on.
+When a listed enemy is already visible as a nameplate, target, focus, or mouseover, the addon can play the built-in raid-warning sound, show a short banner, and print a short chat line. Instance warnings stay off unless you turn them on.
 
 ### What it does not do
 
@@ -40,7 +41,7 @@ When a listed enemy is already visible as a nameplate, target, focus, or mouseov
 
 ### Privacy and sharing
 
-Reports stay in local SavedVariables. Sync uses WoW addon whispers only, between characters you typed in by name. Removing a trusted friend stops future sharing and hides their received reports.
+Reports stay in local SavedVariables. Sync uses WoW addon whispers only, between characters you typed in by name. Chat shows name and stance only. Withdrawn reports clear their reason before sync. Removing a trusted friend stops sharing and drops queued messages to them.
 
 ### Conduct
 
@@ -58,17 +59,9 @@ Paste the matching section from `CHANGELOG.md` into the file form.
 
 Source: https://github.com/Nyandu-wow/ForeverVendetta
 
-## Avatar checklist
+## Upload setup
 
-- [ ] Original 400×400 PNG (not WebP)
-- [ ] Not a solid color
-- [ ] No unlicensed Blizzard key art
-- [ ] No NSFW
-
-## File checklist
-
-- [ ] Zip root is `ForeverVendetta/ForeverVendetta.toc`
-- [ ] Includes LICENSE and CHANGELOG.md
-- [ ] No tests, `.pkgmeta`, `.tools`, tokens, or ForeverLAN files
-- [ ] Tagged Forever 1.60.1
-- [ ] GitHub repository is **public** so Blizzard's visible-source rule is easy to verify
+1. Create project at https://authors.curseforge.com/ (game: World of Warcraft).
+2. Copy `curseforge.example.json` → `curseforge.json` and set `projectId`.
+3. Copy `.env.example` → `.env` and set `CURSEFORGE_API_TOKEN`.
+4. `node scripts/upload-curseforge.mjs --list-versions` then `node scripts/upload-curseforge.mjs`.

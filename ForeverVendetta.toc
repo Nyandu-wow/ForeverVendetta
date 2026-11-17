@@ -3,7 +3,7 @@
 ## Title: Forever Vendetta
 ## Notes: Free friends-only enemy notes with visible-unit warnings. No Internet. /fv
 ## Author: Nyandu
-## Version: 0.1.7
+## Version: 0.1.8
 ## X-License: All Rights Reserved
 ## X-Website: https://github.com/Nyandu-wow/ForeverVendetta
 ## SavedVariables: ForeverVendettaDB
@@ -14,5 +14,5 @@ Core\Identity.lua
 Core\Store.lua
 Core\Detect.lua
 Comms.lua
-UI.lua
+UI\Window.lua
 ForeverVendetta.lua

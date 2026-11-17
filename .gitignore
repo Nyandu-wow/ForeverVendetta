@@ -2,6 +2,8 @@
 .tools/
 dist/
 *.zip
+.env
+curseforge.json
 node_modules/
 __pycache__/
 .DS_Store

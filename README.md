@@ -2,11 +2,11 @@
 
 A small, standalone **WoW Forever / Camelot (Interface 16001)** addon for a private group of friends. Keep enemy reports, share reasons, and hear a warning when a listed enemy becomes visible.
 
-**Version 0.1.7 — modular layout and privacy hardening.**
+**Version 0.1.8 — security hardening and CurseForge upload tooling.**
 
 ## Install
 
-Extract `ForeverVendetta-0.1.7.zip` into the Forever client's `Interface/AddOns/` directory. The result must be `Interface/AddOns/ForeverVendetta/ForeverVendetta.toc` with the `Core/` Lua files beside it. Restart WoW if it was running when you installed the folder, then enable Forever Vendetta in AddOns.
+Extract `ForeverVendetta-0.1.8.zip` into the Forever client's `Interface/AddOns/` directory. The result must be `Interface/AddOns/ForeverVendetta/ForeverVendetta.toc` with the `Core/` and `UI/` Lua files beside it. Restart WoW if it was running when you installed the folder, then enable Forever Vendetta in AddOns.
 
 This addon is free of charge. It does not connect to the Internet. Reports move only as hidden whispers between characters you add by their full name. There are no ads, premium unlocks, or in-game donation prompts.
 
@@ -91,4 +91,4 @@ The source has an offline mocked-API regression suite, which cannot prove Foreve
 
 Development tests live in `tests/run.lua`. Run with Lua 5.1 or later from the repository root: `lua tests/run.lua`. The build was also exercised with the Fengari development interpreter; it is not an addon dependency.
 
-To rebuild the ZIP on Windows, run `powershell -File package.ps1` from repository root. The output is `dist/ForeverVendetta-0.1.7.zip`. The zip contains only the TOC, Lua under `Core/`, README, changelog, and license. Upload that zip to CurseForge and choose WoW Forever 1.60.1. Paste text and checklists live in `docs/CURSEFORGE.md`. Policy and privacy notes live in `docs/`. ForeverLAN is a different addon and a different repository. Source: https://github.com/Nyandu-wow/ForeverVendetta
+To rebuild the ZIP on Windows, run `powershell -File package.ps1` from repository root. The output is `dist/ForeverVendetta-0.1.8.zip`. The zip contains only the TOC, Lua under `Core/` and `UI/`, README, changelog, and license. For CurseForge: create the project, put the project id in `curseforge.json`, set `CURSEFORGE_API_TOKEN` in `.env`, then `node scripts/upload-curseforge.mjs`. Paste text lives in `docs/CURSEFORGE.md`. Policy, privacy, and security notes live in `docs/`. Avatar: `media/avatar-400.png`. ForeverLAN is a different addon and repository. Source: https://github.com/Nyandu-wow/ForeverVendetta
