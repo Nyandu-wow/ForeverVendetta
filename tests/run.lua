@@ -564,5 +564,36 @@ test("Window scales to narrow and short screens",function()
     check(window.width*window.scale<=600); check(window.height*window.scale<=440)
 end)
 
+test("Mixed author stances produce a neutral alert title", function()
+    local x = boot("Alice River")
+    local title, preview
+    x.a.showBanner = function(t, _, testMode) title, preview = t, testMode end
+    x.a.alert("Grim Reaper", {
+        { owner = x.a.me.key, report = {mode="AVENGE", note="First encounter"} },
+        { owner = "bob stone-forever", report = {mode="AVOID", note="Second encounter"} },
+    })
+    eq(title, "Grim Reaper - 2 reports")
+    x.a.testAlert()
+    eq(preview, true)
+end)
+
+test("Revealing a filtered selection preserves draft and saving reveals the enemy", function()
+    local x = boot("Alice River")
+    x.a.report("Grim Reaper", "Original")
+    x.a.toggle()
+    local row = findWidget(x, "Button", nil, function(w) return type(w.group)=="table" end)
+    row.scripts.OnClick(row)
+    local fields = editors(x)
+    fields[3]:SetText("Draft")
+    fields[1]:SetText("No matches")
+    click(x, "Show in list")
+    eq(fields[3]:GetText(), "Draft")
+    fields[1]:SetText("No matches")
+    click(x, "Save changes")
+    eq(fields[1]:GetText(), "")
+    eq(x.a.entries()[1].report.note, "Draft")
+    eq(row.group.name, "Grim Reaper")
+end)
+
 print("Passed " .. passed .. " Forever Vendetta regression tests.")
 

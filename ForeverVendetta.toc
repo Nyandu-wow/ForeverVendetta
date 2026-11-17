@@ -3,7 +3,7 @@
 ## Title: Forever Vendetta
 ## Notes: Friends-only enemy blacklist with shared reports and nearby warnings. No Internet. /fv
 ## Author: Nyandu
-## Version: 0.1.4
+## Version: 0.1.5
 ## X-License: All Rights Reserved
 ## SavedVariables: ForeverVendettaDB
 ## DefaultState: enabled

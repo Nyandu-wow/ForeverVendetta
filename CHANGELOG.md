@@ -1,5 +1,10 @@
 # Forever Vendetta
 
+## 0.1.5
+
+- Mixed stances have neutral warnings. Friends show active reports and the last incoming update.
+- Saved reports are revealed in the list. Report history has more space, and feedback clears between tabs.
+
 ## 0.1.4
 
 - Own repository, separate from ForeverLAN.

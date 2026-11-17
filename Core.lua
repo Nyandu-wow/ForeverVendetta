@@ -359,12 +359,18 @@ end
 function A.alert(name, matches, test)
     local first = matches[1]
     local msg = (test and "TEST - " or "") .. name .. " - " .. first.report.mode
+    for i = 2, #matches do
+        if matches[i].report.mode ~= first.report.mode then
+            msg = name .. " - " .. #matches .. " reports"
+            break
+        end
+    end
     local detail = first.report.note ~= "" and first.report.note or "Listed enemy"
     detail = detail .. " (" .. A.personName(first.owner) .. ")"
     if #matches > 1 then detail = detail .. " + " .. (#matches - 1) .. " more report(s)" end
     A.print(msg .. ": " .. detail)
     if A.store.settings.sound then A.playSound() end
-    if A.store.settings.banner and A.showBanner then A.showBanner(msg, detail) end
+    if A.store.settings.banner and A.showBanner then A.showBanner(msg, detail, test) end
 end
 
 function A.detect(unit)

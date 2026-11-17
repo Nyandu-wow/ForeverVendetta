@@ -1,10 +1,10 @@
-# Forever Vendetta — CurseForge checkup
+﻿# Forever Vendetta — CurseForge checkup
 
-This repository is Forever Vendetta only. ForeverLAN is a separate project.
+This repository is Forever Vendetta only. ForeverLAN is a separate project: https://github.com/Nyandu-wow/ForeverLAN
 
-Upload `dist/ForeverVendetta-0.1.4.zip` from `powershell -File package.ps1`. On the file form, choose **WoW Forever 1.60.1**. Interface `16001` is the TOC value. The zip root is `ForeverVendetta/ForeverVendetta.toc`.
+Upload `dist/ForeverVendetta-0.1.5.zip` from `powershell -File package.ps1`. On the file form, choose **WoW Forever 1.60.1**. Interface `16001` is the TOC value. The zip root is `ForeverVendetta/ForeverVendetta.toc`.
 
-If you connect this repository as CurseForge source later, `.pkgmeta` packages the addon folder and ignores tests and tooling.
+CurseForge source can point at https://github.com/Nyandu-wow/ForeverVendetta. `.pkgmeta` packages the addon folder and ignores tests and tooling.
 
 ## Summary
 
@@ -22,8 +22,7 @@ Type `/fv`. Blacklist, Friends, and Alerts are the three tabs. Both friends must
 
 ### Links
 
-Local source: `E:\OneDrive\Private\Cursor\ForeverVendetta`.
-Put the public clone URL at the bottom of the CurseForge description once you publish the GitHub remote.
+Source: https://github.com/Nyandu-wow/ForeverVendetta
 
 ## File changelog
 

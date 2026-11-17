@@ -2,11 +2,11 @@
 
 A small, standalone **WoW Forever / Camelot (Interface 16001)** addon for a private group of friends. Keep enemy reports, share reasons, and hear a warning when a listed enemy becomes visible.
 
-**Version 0.1.4 — separate repository from ForeverLAN, awaiting in-game validation.**
+**Version 0.1.5 — separate repository from ForeverLAN, awaiting in-game validation.**
 
 ## Install
 
-Extract `ForeverVendetta-0.1.4.zip` into the Forever client's `Interface/AddOns/` directory. The result must be `Interface/AddOns/ForeverVendetta/ForeverVendetta.toc`, alongside four Lua files. Restart WoW if it was running when you installed the folder, then enable Forever Vendetta in AddOns.
+Extract `ForeverVendetta-0.1.5.zip` into the Forever client's `Interface/AddOns/` directory. The result must be `Interface/AddOns/ForeverVendetta/ForeverVendetta.toc`, alongside four Lua files. Restart WoW if it was running when you installed the folder, then enable Forever Vendetta in AddOns.
 
 This addon does not connect to the Internet. Reports move only as hidden whispers between characters you add by their full name.
 
@@ -85,4 +85,4 @@ The source has an offline mocked-API regression suite, which cannot prove Foreve
 
 Development tests live in `tests/run.lua`. Run with Lua 5.1 or later from the repository root: `lua tests/run.lua`. The build was also exercised with the Fengari development interpreter; it is not an addon dependency.
 
-To rebuild the ZIP on Windows, run `powershell -File package.ps1` from repository root. The output is `dist/ForeverVendetta-0.1.4.zip`. The zip contains only the TOC, Lua, README, changelog, and license. Upload that zip to CurseForge and choose WoW Forever 1.60.1. ForeverLAN is a different addon and a different repository.
+To rebuild the ZIP on Windows, run `powershell -File package.ps1` from repository root. The output is `dist/ForeverVendetta-0.1.5.zip`. The zip contains only the TOC, Lua, README, changelog, and license. Upload that zip to CurseForge and choose WoW Forever 1.60.1. ForeverLAN is a different addon and a different repository.
