@@ -2,15 +2,21 @@
 
 A small, standalone **WoW Forever / Camelot (Interface 16001)** addon for a private group of friends. Keep enemy reports, share reasons, and hear a warning when a listed enemy becomes visible.
 
-**Version 0.1.5 — separate repository from ForeverLAN, awaiting in-game validation.**
+**Version 0.1.6 — CurseForge packaging and Blizzard policy wording.**
 
 ## Install
 
-Extract `ForeverVendetta-0.1.5.zip` into the Forever client's `Interface/AddOns/` directory. The result must be `Interface/AddOns/ForeverVendetta/ForeverVendetta.toc`, alongside four Lua files. Restart WoW if it was running when you installed the folder, then enable Forever Vendetta in AddOns.
+Extract `ForeverVendetta-0.1.6.zip` into the Forever client's `Interface/AddOns/` directory. The result must be `Interface/AddOns/ForeverVendetta/ForeverVendetta.toc`, alongside four Lua files. Restart WoW if it was running when you installed the folder, then enable Forever Vendetta in AddOns.
 
-This addon does not connect to the Internet. Reports move only as hidden whispers between characters you add by their full name.
+This addon is free of charge. It does not connect to the Internet. Reports move only as hidden whispers between characters you add by their full name. There are no ads, premium unlocks, or in-game donation prompts.
 
 No Node.js, local service, external account, companion, or ForeverLAN is required.
+
+## Conduct and privacy
+
+Forever Vendetta is a personal and friends-only notepad for enemy players your client can already show. It does not reveal stealth, scan the zone, automate combat, or count kills. Shared notes are opinions from people you explicitly trust, not a verified threat score. You remain responsible for following the World of Warcraft Terms of Use; do not use this addon to harass or mistreat other players.
+
+Data stays in local SavedVariables and in addon whispers to characters you typed in. Removing a trusted friend stops sharing with them and hides their received reports.
 
 ## First session
 
@@ -85,4 +91,4 @@ The source has an offline mocked-API regression suite, which cannot prove Foreve
 
 Development tests live in `tests/run.lua`. Run with Lua 5.1 or later from the repository root: `lua tests/run.lua`. The build was also exercised with the Fengari development interpreter; it is not an addon dependency.
 
-To rebuild the ZIP on Windows, run `powershell -File package.ps1` from repository root. The output is `dist/ForeverVendetta-0.1.5.zip`. The zip contains only the TOC, Lua, README, changelog, and license. Upload that zip to CurseForge and choose WoW Forever 1.60.1. ForeverLAN is a different addon and a different repository.
+To rebuild the ZIP on Windows, run `powershell -File package.ps1` from repository root. The output is `dist/ForeverVendetta-0.1.6.zip`. The zip contains only the TOC, Lua, README, changelog, and license. Upload that zip to CurseForge and choose WoW Forever 1.60.1. Paste text and checklists live in `CURSEFORGE.md`. Policy notes for reviewers live in `POLICY.md`. ForeverLAN is a different addon and a different repository. Source: https://github.com/Nyandu-wow/ForeverVendetta

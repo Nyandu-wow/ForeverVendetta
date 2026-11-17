@@ -1,13 +1,17 @@
 Copyright (c) 2026 Nyandu
 All Rights Reserved.
 
-Forever Vendetta may be downloaded and used free of charge through CurseForge
-or other channels authorized by the author.
+Forever Vendetta is free of charge. You may download and use it through
+CurseForge or other channels authorized by the author. There is no premium
+edition, subscription, or paid unlock.
 
-You may not sell this software, claim it as your own, or redistribute modified
-versions without the author's permission.
+The Lua source in this package (and in the public GitHub repository) is
+provided unobfuscated for transparency under Blizzard's UI Add-On Development
+Policy. Viewing that source does not grant a license to sell the software,
+claim it as your own, or redistribute modified versions without the author's
+permission.
 
-Source code is provided for transparency (Blizzard UI Add-On Development Policy)
-and does not grant a license to reuse, fork, or rebrand the project.
+The addon does not connect to the Internet. It does not include advertisements
+or in-game donation requests.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.

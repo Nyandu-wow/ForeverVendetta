@@ -1,5 +1,10 @@
 # Forever Vendetta
 
+## 0.1.6
+
+- CurseForge and Blizzard policy packaging: public source notes, clearer license, listing copy, and conduct/privacy wording.
+- TOC website link points at the public GitHub repository.
+
 ## 0.1.5
 
 - Mixed stances have neutral warnings. Friends show active reports and the last incoming update.

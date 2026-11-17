@@ -9,6 +9,8 @@ ignore:
   - .gitignore
   - package.ps1
   - CURSEFORGE.md
+  - POLICY.md
   - tests
   - dist
+  - .tools
   - "*.zip"

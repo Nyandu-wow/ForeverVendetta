@@ -1,10 +1,11 @@
 ## Interface: 16001
 ## AllowLoadGameType: forever, camelot
 ## Title: Forever Vendetta
-## Notes: Friends-only enemy blacklist with shared reports and nearby warnings. No Internet. /fv
+## Notes: Free friends-only enemy notes with visible-unit warnings. No Internet. /fv
 ## Author: Nyandu
-## Version: 0.1.5
+## Version: 0.1.6
 ## X-License: All Rights Reserved
+## X-Website: https://github.com/Nyandu-wow/ForeverVendetta
 ## SavedVariables: ForeverVendettaDB
 ## DefaultState: enabled
 
