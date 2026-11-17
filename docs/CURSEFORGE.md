@@ -1,6 +1,6 @@
 ﻿# Forever Vendetta — CurseForge project page
 
-Upload `dist/ForeverVendetta-0.1.6.zip` from `powershell -File package.ps1`.
+Upload `dist/ForeverVendetta-0.1.7.zip` from `powershell -File package.ps1`.
 
 - Game version: **WoW Forever 1.60.1**
 - Release type: **Beta** for the first public checkup (or Alpha if you want it hidden from the default client list)

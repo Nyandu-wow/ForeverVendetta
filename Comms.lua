@@ -3,8 +3,10 @@ local queue, queued, lastRequest, lastHello, lastSnapshot = {}, {}, {}, {}, {}
 local elapsed = 0
 
 function A.wire(r)
+    -- Withdrawn reports still sync identity + revision, but reasons are not resent.
+    local note = r.deleted and "" or r.note
     return table.concat({ "1", "E", tostring(r.rev), r.deleted and "1" or "0",
-        r.mode, r.name, r.realm, r.note }, "|")
+        r.mode, r.name, r.realm, note }, "|")
 end
 
 local function digest(bucket)

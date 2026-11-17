@@ -8,8 +8,7 @@ ignore:
   - .pkgmeta
   - .gitignore
   - package.ps1
-  - CURSEFORGE.md
-  - POLICY.md
+  - docs
   - tests
   - dist
   - .tools

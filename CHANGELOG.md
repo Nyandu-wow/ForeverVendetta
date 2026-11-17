@@ -1,5 +1,11 @@
 # Forever Vendetta
 
+## 0.1.7
+
+- Code laid out under `Core/` (util, identity, store, detect), with `ForeverVendetta.lua` as the entry file.
+- Privacy: withdrawn reports no longer keep or resend reasons; chat alerts omit the reason text.
+- Author docs moved to `docs/` (`PRIVACY.md`, CurseForge and policy notes).
+
 ## 0.1.6
 
 - CurseForge and Blizzard policy packaging: public source notes, clearer license, listing copy, and conduct/privacy wording.

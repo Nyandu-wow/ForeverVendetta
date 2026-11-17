@@ -94,7 +94,10 @@ local function boot(name, saved, setup)
     env.C_NamePlate = { GetNamePlates = function() return {} end }
     env.ForeverVendettaDB = saved
     if setup then setup(env) end
-    for _, file in ipairs({ "Core.lua", "Comms.lua", "UI.lua", "Main.lua" }) do
+    for _, file in ipairs({
+        "Core/Util.lua", "Core/Identity.lua", "Core/Store.lua", "Core/Detect.lua",
+        "Comms.lua", "UI.lua", "ForeverVendetta.lua",
+    }) do
         local chunk
         if _VERSION == "Lua 5.1" then chunk = assert(loadfile(ROOT .. file)); setfenv(chunk, env)
         else chunk = assert(loadfile(ROOT .. file, "t", env)) end
@@ -380,7 +383,8 @@ test("Hyphenated addon senders are surnames and whispers use the full name", fun
     y.a.receive(y.a.PREFIX, x.out[1][2], "WHISPER", "Mallory-Vex")
     eq(#y.a.entries(), 1)
     y.a.detect("target")
-    check(y.messages[#y.messages]:find("Alice River", 1, true) ~= nil)
+    check(y.messages[#y.messages]:find("Grim Reaper", 1, true) ~= nil)
+    check(y.messages[#y.messages]:find("Camped", 1, true) == nil, "chat must not archive the reason")
     check(y.messages[#y.messages]:find("alice river-forever", 1, true) == nil)
 end)
 
@@ -595,5 +599,24 @@ test("Revealing a filtered selection preserves draft and saving reveals the enem
     eq(row.group.name, "Grim Reaper")
 end)
 
+test("Withdrawn reports do not resend reasons on the wire", function()
+    local x = boot("Alice River")
+    check(x.a.report("Grim Reaper", "Private reason", "AVOID"))
+    check(x.a.report("Grim Reaper", "Private reason", "AVOID", true))
+    local tomb = x.a.store.reports[x.a.me.key]["grim reaper-forever"]
+    eq(tomb.deleted, true)
+    eq(tomb.note, "")
+    check(x.a.wire(tomb):find("Private reason", 1, true) == nil)
+end)
+
+test("Untrust clears received stamps for that friend", function()
+    local x = boot("Alice River")
+    x.a.trust("Bob Stone")
+    x.a.store.lastReceived = { ["bob stone-forever"] = 123 }
+    check(x.a.untrust("Bob Stone"))
+    eq(x.a.store.lastReceived["bob stone-forever"], nil)
+end)
+
 print("Passed " .. passed .. " Forever Vendetta regression tests.")
+
 

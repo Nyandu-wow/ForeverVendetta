@@ -1,6 +1,6 @@
 # Forever Vendetta — Blizzard and CurseForge policy notes
 
-This file is for authors and reviewers. It is not shipped in the install zip.
+This file is for authors and reviewers. It lives under `docs/` and is not shipped in the install zip. See also `PRIVACY.md`.
 
 ## Blizzard UI Add-On Development Policy
 
