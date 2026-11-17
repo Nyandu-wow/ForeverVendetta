@@ -1,0 +1,14 @@
+package-as: ForeverVendetta
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - .pkgmeta
+  - .gitignore
+  - package.ps1
+  - CURSEFORGE.md
+  - tests
+  - dist
+  - "*.zip"

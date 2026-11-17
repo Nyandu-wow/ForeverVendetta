@@ -1,0 +1,14 @@
+## Interface: 16001
+## AllowLoadGameType: forever, camelot
+## Title: Forever Vendetta
+## Notes: Friends-only enemy blacklist with shared reports and nearby warnings. No Internet. /fv
+## Author: Nyandu
+## Version: 0.1.4
+## X-License: All Rights Reserved
+## SavedVariables: ForeverVendettaDB
+## DefaultState: enabled
+
+Core.lua
+Comms.lua
+UI.lua
+Main.lua
