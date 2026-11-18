@@ -36,7 +36,9 @@ local function boot(name, saved, setup)
         function w:SetFontObject(font) self.font=font end
         function w:SetChecked(value) self.checked=value end
         function w:GetChecked() return self.checked end
-        function w:SetEnabled(value) self.enabled=value end
+        function w:SetEnabled(value) self.enabled=value and true or false end
+        function w:Enable() self.enabled=true end
+        function w:Disable() self.enabled=false end
         function w:GetValue() return self.value end
         function w:SetValue(value)
             self.value=value
@@ -474,7 +476,10 @@ test("Banner stays up for six seconds and then hides", function()
 end)
 
 local function visible(w)
-    while w do if w.shown==false then return false end; w=w.parent end
+    while type(w) == "table" do
+        if w.shown == false then return false end
+        w = rawget(w, "parent")
+    end
     return true
 end
 local function findWidget(x, kind, caption, predicate)
@@ -615,6 +620,49 @@ test("Untrust clears received stamps for that friend", function()
     x.a.store.lastReceived = { ["bob stone-forever"] = 123 }
     check(x.a.untrust("Bob Stone"))
     eq(x.a.store.lastReceived["bob stone-forever"], nil)
+end)
+
+test("Banner uses the stance label and color", function()
+    local x = boot("Alice River")
+    x.a.alert("Grim Reaper", { { owner = x.a.me.key, report = { mode = "AVOID", note = "Camped" } } })
+    check(x.messages[#x.messages]:find("Grim Reaper - Avoid", 1, true) ~= nil)
+    check(x.messages[#x.messages]:find("Camped", 1, true) == nil)
+    local title
+    for _, w in ipairs(x.widgets) do
+        if w.text == "Grim Reaper - Avoid" then title = w end
+    end
+    check(title and title.textColor)
+    eq(title.textColor[2], 0.73)
+    x.a.alert("Grim Reaper", {
+        { owner = x.a.me.key, report = { mode = "AVENGE", note = "A" } },
+        { owner = "bob", report = { mode = "AVOID", note = "B" } },
+    })
+    local mixed
+    for _, w in ipairs(x.widgets) do
+        if w.text == "Grim Reaper - 2 reports" then mixed = w end
+    end
+    eq(mixed.textColor[2], 0.82)
+end)
+
+test("A selected enemy keeps its name locked", function()
+    local x = boot("Alice River")
+    x.a.report("Grim Reaper", "Original", "AVOID")
+    x.a.toggle()
+    local row = findWidget(x, "Button", nil, function(w) return type(w.group) == "table" end)
+    row.scripts.OnClick(row)
+    eq(editors(x)[2].enabled, false)
+    click(x, "Add enemy")
+    eq(editors(x)[2].enabled, true)
+end)
+
+test("Sync status counts queued whispers", function()
+    local x = boot("Alice River")
+    x.a.trust("Bob Stone")
+    x.a.toggleFriends()
+    click(x, "Sync with friends")
+    local note = findWidget(x, "FontString", nil, function(w) return type(w.text) == "string" and w.text:find("queued", 1, true) end)
+    check(note.text:find("connected", 1, true) == nil)
+    check(x.a.pendingCount() > 0)
 end)
 
 test("Untrust drops queued whispers immediately", function()

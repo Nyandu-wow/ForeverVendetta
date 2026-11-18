@@ -81,6 +81,12 @@ local function edit(parent, x, y, w, max, multi)
     return e
 end
 
+local function shorten(value, limit)
+    if not A.plain(value, "string") then return "" end
+    if #value <= limit then return value end
+    return value:sub(1, limit - 3) .. "..."
+end
+
 local function placeholder(e, value)
     local hint = text(e, value, 8, 7, 285, "GameFontHighlightSmall", MUTED)
     local previous = e:GetScript("OnTextChanged")
@@ -156,7 +162,7 @@ local function newReport()
     filling = false
     mode = "AVENGE"
     ui.historyScroll:SetVerticalScroll(0)
-    feedback("Enter their full name, choose a stance, and save your report.")
+    feedback("")
     A.refresh()
     ui.name:SetFocus()
 end
@@ -238,7 +244,8 @@ end
 refreshEditor = function(lookup)
     local g = selected and lookup[selected]
     local own = ownReport(g)
-    ui.editorTitle:SetText(g and g.name or "Add your report")
+    ui.editorTitle:SetText(g and shorten(g.name, 32) or "Add your report")
+    if g then ui.name:Disable() else ui.name:Enable() end
     ui.save:SetText(own and "Save changes" or "Save report")
     ui.withdraw:SetEnabled(own ~= nil)
     ui.withdraw:SetText(armedWithdraw and "Confirm removal" or "Withdraw mine")
@@ -261,6 +268,15 @@ refreshEditor = function(lookup)
     ui.historyChild:SetHeight(math.max(110, A.plain(height, "number") and height or 110))
 end
 
+local function syncNote()
+    local pending = A.pendingCount()
+    if A.plain(A.lastSendError, "string") and A.lastSendError ~= "" then return A.lastSendError end
+    if pending > 0 then
+        return pending .. (pending == 1 and " message queued. " or " messages queued. ") .. "Both characters need to be online."
+    end
+    return "Reports catch up when both characters are online. No report yet means no time on that row."
+end
+
 function A.refresh()
     if not panel or not panel:IsShown() then return end
     local all, lookup = groups()
@@ -276,6 +292,7 @@ function A.refresh()
     end
     local count = math.max(1, math.ceil(#filtered / ROWS))
     page = math.max(1, math.min(page, count))
+    ui.heading:SetText(view == "friends" and "Trusted friends" or (view == "alerts" and "Warnings" or "Enemy blacklist"))
     ui.summary:SetText(#all .. (#all == 1 and " enemy" or " enemies") .. "  /  " .. #A.entries() .. " reports  /  " .. A.count(A.store.friends) .. " friends")
     ui.pagination:SetText(#filtered == 0 and "No results" or ("Page " .. page .. " of " .. count))
     ui.prev:SetEnabled(page > 1)
@@ -292,7 +309,7 @@ function A.refresh()
         row:SetShown(g ~= nil)
         if g then
             if selected == g.key then selectionVisible = true end
-            row.name:SetText(g.name)
+            row.name:SetText(shorten(g.name, 28))
             local s = stanceInfo(g.modes.AVOID and "AVOID" or (g.modes.AVENGE and "AVENGE" or "WATCH"))
             row.tag:SetText(A.count(g.modes) > 1 and "Mixed reports" or s.label)
             local color = A.count(g.modes) > 1 and MUTED or s.color
@@ -303,8 +320,8 @@ function A.refresh()
         end
     end
     ui.empty:SetShown(#filtered == 0)
-    ui.emptyTitle:SetText(#all == 0 and "Your blacklist starts here" or "No enemies match")
-    ui.emptyBody:SetText(#all == 0 and "Target an enemy and click Add target.\nOr choose Add enemy to enter their full name.\n\nAdd your friends to share reports." or "Try another name or reason,\nor switch the stance filter back to All.")
+    ui.emptyTitle:SetText(#all == 0 and "No enemies yet" or "No enemies match")
+    ui.emptyBody:SetText(#all == 0 and "Add target, or type a full name." or "Clear the search, or set the filter to All.")
     ui.reveal:SetShown(lookup[selected] ~= nil and not selectionVisible)
     refreshEditor(lookup)
     for id, b in pairs(nav) do
@@ -330,12 +347,12 @@ function A.refresh()
             for _, r in pairs(A.store.reports[peer.key] or {}) do
                 if not r.deleted then n = n + 1 end
             end
-            row.name:SetText(peer.name)
+            row.name:SetText(shorten(peer.name, 32))
             local received = A.store.lastReceived and A.store.lastReceived[peer.key]
             local stamp = received and A.call(date, "%d %b %H:%M", received)
             local status = n .. (n == 1 and " active report" or " active reports")
-            if stamp then status = status .. "  /  Last received " .. stamp end
-            row.detail:SetText(status)
+            if stamp then status = status .. "  /  Last report " .. stamp end
+            row.detail:SetText(shorten(status, 48))
             row.remove:SetText(armedFriend == peer.key and "Confirm" or "Remove")
         end
     end
@@ -343,6 +360,7 @@ function A.refresh()
     ui.cooldownLabel:SetText(A.store.settings.cooldown .. " seconds")
     if ui.cooldown:GetValue() ~= A.store.settings.cooldown then ui.cooldown:SetValue(A.store.settings.cooldown) end
     ui.footer:SetText((A.store.settings.instances and "Alerts in all zones" or "Open-world alerts") .. "  /  " .. A.store.settings.cooldown .. "s alert cooldown")
+    if ui.syncNote then ui.syncNote:SetText(syncNote()) end
 end
 
 local function buildEnemies()
@@ -397,16 +415,15 @@ local function buildEnemies()
     ui.empty:SetSize(420, 170)
     ui.emptyTitle = text(ui.empty, "", 0, 0, 410, "GameFontNormalLarge", GOLD)
     ui.emptyBody = text(ui.empty, "", 0, 35, 410, "GameFontHighlight", MUTED)
-    ui.prev = button(list, "Previous", 14, 373, 95, function() page = page - 1; A.refresh() end)
-    ui.pagination = text(list, "", 130, 380, 165, "GameFontHighlightSmall", MUTED)
-    ui.next = button(list, "Next", 365, 373, 95, function() page = page + 1; A.refresh() end)
-
-    ui.reveal = button(list, "Show in list", 237, 373, 115, showInList)
+    ui.prev = button(list, "Previous", 14, 373, 88, function() page = page - 1; A.refresh() end)
+    ui.pagination = text(list, "", 108, 380, 100, "GameFontHighlightSmall", MUTED)
+    ui.reveal = button(list, "Show in list", 214, 373, 110, showInList)
+    ui.next = button(list, "Next", 352, 373, 88, function() page = page + 1; A.refresh() end)
     local e = box(p, 504, 0, 340, 408)
-    ui.editorTitle = text(e, "Add your report", 14, 14, 310, "GameFontNormalLarge", GOLD)
+    ui.editorTitle = text(e, "Add your report", 14, 12, 310, "GameFontNormal", GOLD)
     ui.editorTitle:SetWordWrap(false)
-    text(e, "Enemy full name", 14, 45, 310, "GameFontHighlightSmall", MUTED)
-    ui.name = edit(e, 14, 62, 312, 64)
+    text(e, "Enemy full name", 14, 32, 310, "GameFontHighlightSmall", MUTED)
+    ui.name = edit(e, 14, 46, 312, 64)
     ui.name:SetScript("OnTextChanged", function(_, user)
         if user and not filling then
             selected, selectedRealm, armedWithdraw = nil, nil, nil
@@ -417,7 +434,7 @@ local function buildEnemies()
     ui.name:SetScript("OnTabPressed", function() ui.note:SetFocus() end)
     placeholder(ui.name, "First name and surname")
     for i, s in ipairs(STANCES) do
-        local b = button(e, s.label, 14 + (i - 1) * 106, 104, 100, function()
+        local b = button(e, s.label, 14 + (i - 1) * 106, 82, 100, function()
             mode = s.id
             A.refresh()
         end)
@@ -425,11 +442,11 @@ local function buildEnemies()
         tip(b, s.label, s.hint)
         stanceButtons[s.id] = b
     end
-    text(e, "Reason (optional)", 14, 138, 310, "GameFontHighlightSmall", MUTED)
+    text(e, "Reason (optional)", 14, 114, 310, "GameFontHighlightSmall", MUTED)
     local noteScroll = CreateFrame("ScrollFrame", nil, e)
-    noteScroll:SetPoint("TOPLEFT", 14, -156)
-    noteScroll:SetSize(312, 54)
-    rect(noteScroll, 0, 0, 312, 54, { .015, .02, .025, 1 })
+    noteScroll:SetPoint("TOPLEFT", 14, -130)
+    noteScroll:SetSize(312, 48)
+    rect(noteScroll, 0, 0, 312, 48, { .015, .02, .025, 1 })
     ui.note = edit(noteScroll, 0, 0, 312, 96, true)
     noteScroll:SetScrollChild(ui.note)
     ui.note:SetScript("OnTabPressed", function() ui.name:SetFocus() end)
@@ -438,10 +455,10 @@ local function buildEnemies()
         if not A.plain(current, "number") then current = 0 end
         local bottom = -y + height
         if -y < current then noteScroll:SetVerticalScroll(-y)
-        elseif bottom > current + 54 then noteScroll:SetVerticalScroll(bottom - 54) end
+        elseif bottom > current + 48 then noteScroll:SetVerticalScroll(bottom - 48) end
     end)
-    ui.save = button(e, "Save report", 14, 221, 151, saveReport)
-    ui.withdraw = button(e, "Withdraw mine", 175, 221, 151, function()
+    ui.save = button(e, "Save report", 14, 186, 151, saveReport)
+    ui.withdraw = button(e, "Withdraw mine", 175, 186, 151, function()
         local _, lookup = groups()
         local own = ownReport(selected and lookup[selected])
         if not own then return end
@@ -458,11 +475,11 @@ local function buildEnemies()
         A.refresh()
     end)
     tip(ui.withdraw, "Withdraw your report", "Only your current character's report is removed. Friends' reports remain. Click twice to confirm.")
-    ui.historyTitle = text(e, "Your friends' reports", 14, 263, 310, "GameFontNormalSmall", GOLD)
+    ui.historyTitle = text(e, "Your friends' reports", 14, 220, 310, "GameFontNormalSmall", GOLD)
     local scroll = CreateFrame("ScrollFrame", nil, e, "UIPanelScrollFrameTemplate")
     ui.historyScroll = scroll
-    scroll:SetPoint("TOPLEFT", 14, -285)
-    scroll:SetSize(288, 110)
+    scroll:SetPoint("TOPLEFT", 14, -238)
+    scroll:SetSize(288, 158)
     ui.historyChild = CreateFrame("Frame", nil, scroll)
     ui.historyChild:SetSize(288, 110)
     scroll:SetScrollChild(ui.historyChild)
@@ -515,8 +532,7 @@ local function buildFriends()
 
     local setup = box(p, 504, 0, 340, 408)
     text(setup, "Connect with a friend", 14, 14, 310, "GameFontNormalLarge", GOLD)
-    text(setup, "1. Enter their full character name.", 14, 48, 310)
-    ui.friendName = edit(setup, 14, 74, 312, 112)
+    ui.friendName = edit(setup, 14, 48, 312, 112)
     placeholder(ui.friendName, "Your friend's first name and surname")
     local function addFriend()
         local who = A.sender(ui.friendName:GetText())
@@ -530,18 +546,21 @@ local function buildFriends()
             ui.friendName:SetText("")
             ui.friendName:ClearFocus()
             A.sync()
+            if ui.syncNote then ui.syncNote:SetText(syncNote()) end
         end
     end
-    button(setup, "Add trusted friend", 14, 114, 312, addFriend)
+    button(setup, "Add trusted friend", 14, 88, 312, addFriend)
     ui.friendName:SetScript("OnEnterPressed", addFriend)
-    text(setup, "2. Ask them to add you, too:", 14, 164, 310)
-    text(setup, A.me.name, 14, 190, 310, "GameFontNormalLarge", GOLD)
-    text(setup, "Use the same character you are playing now.\nBattle.net friendship alone does not enable sharing.", 14, 222, 310, "GameFontHighlightSmall", MUTED)
-    ui.sync = button(setup, "Sync with friends", 14, 282, 312, function()
+    text(setup, "Ask them to add you, too:", 14, 132, 310)
+    text(setup, A.me.name, 14, 158, 310, "GameFontNormalLarge", GOLD)
+    text(setup, "Use the same character you are playing now.\nBattle.net friendship alone does not enable sharing.", 14, 190, 310, "GameFontHighlightSmall", MUTED)
+    ui.sync = button(setup, "Sync with friends", 14, 248, 312, function()
         A.sync()
-        feedback("Sync queued. Both characters must be online and trust each other.")
+        local note = syncNote()
+        feedback(note, A.plain(A.lastSendError, "string") and A.lastSendError ~= "")
+        if ui.syncNote then ui.syncNote:SetText(note) end
     end)
-    text(setup, "Reports catch up when both original characters are online. A friend who has no reports may show no received reports even when connected.", 14, 324, 310, "GameFontHighlightSmall", MUTED)
+    ui.syncNote = text(setup, "", 14, 290, 310, "GameFontHighlightSmall", MUTED)
 end
 
 local function buildAlerts()
@@ -614,7 +633,7 @@ local function build()
     drag:SetScript("OnDragStop", function() panel:StopMovingOrSizing() end)
     if UISpecialFrames then table.insert(UISpecialFrames, "ForeverVendettaWindow") end
     rect(panel, 7, 29, W - 14, H - 36, { .055, .065, .08, .98 })
-    text(panel, "Your shared enemy blacklist", 22, 40, 500, "GameFontNormalLarge", GOLD)
+    ui.heading = text(panel, "Enemy blacklist", 22, 40, 500, "GameFontNormalLarge", GOLD)
     ui.summary = text(panel, "", 22, 66, 570, "GameFontHighlightSmall", MUTED)
     button(panel, "Add enemy", 582, 43, 116, function() switch("enemies"); newReport() end)
     button(panel, "Add target", 710, 43, 128, useTarget)
@@ -633,7 +652,7 @@ local function build()
     buildEnemies()
     buildFriends()
     buildAlerts()
-    ui.feedback = text(panel, "Select an enemy to read reports, or add someone new.", 20, 546, 820, "GameFontHighlightSmall", GOLD)
+    ui.feedback = text(panel, "", 20, 546, 820, "GameFontHighlightSmall", GOLD)
     ui.footer = text(panel, "", 20, 568, 820, "GameFontHighlightSmall", MUTED)
     panel:SetScript("OnHide", function()
         for _, p in pairs(pages) do p:Hide() end
@@ -664,7 +683,7 @@ function A.toggleFriends()
     end
 end
 
-function A.showBanner(title, detail, preview)
+function A.showBanner(title, detail, preview, mode)
     if not banner then
         banner = CreateFrame("Frame", nil, UIParent)
         banner:SetSize(620, 86)
@@ -673,9 +692,9 @@ function A.showBanner(title, detail, preview)
         banner:SetFrameStrata("HIGH")
         banner:EnableMouse(false)
         rect(banner, 0, 0, 620, 86, { .055, .025, .025, .96 })
-        rect(banner, 0, 0, 4, 86, { 1, .32, .22, 1 }, "ARTWORK")
+        banner.accent = rect(banner, 0, 0, 4, 86, GOLD, "ARTWORK")
         banner.heading = text(banner, "", 18, 9, 580, "GameFontNormalSmall", GOLD)
-        banner.title = text(banner, "", 18, 28, 580, "GameFontNormalLarge", STANCES[1].color)
+        banner.title = text(banner, "", 18, 28, 580, "GameFontNormalLarge", GOLD)
         banner.detail = text(banner, "", 18, 53, 580, "GameFontHighlightSmall")
         banner.remaining = 0
         banner:Hide()
@@ -685,6 +704,12 @@ function A.showBanner(title, detail, preview)
             if self.remaining <= 0 then self:Hide() end
         end)
     end
+    local color = GOLD
+    for _, s in ipairs(STANCES) do
+        if s.id == mode then color = s.color break end
+    end
+    banner.accent:SetColorTexture(unpack(color))
+    banner.title:SetTextColor(unpack(color))
     banner.heading:SetText(preview and "PREVIEW" or "BLACKLISTED ENEMY")
     banner.title:SetText(title)
     banner.detail:SetText(detail)

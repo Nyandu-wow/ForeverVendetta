@@ -6,23 +6,31 @@ function A.playSound()
     A.call(PlaySound, sound, "Master")
 end
 
+local STANCE_LABEL = { AVENGE = "Avenge", AVOID = "Avoid", WATCH = "Watch" }
+
 function A.alert(name, matches, test)
     local first = matches[1]
-    local title = (test and "TEST - " or "") .. name .. " - " .. first.report.mode
+    local mixed = false
     for i = 2, #matches do
-        if matches[i].report.mode ~= first.report.mode then
-            title = (test and "TEST - " or "") .. name .. " - " .. #matches .. " reports"
-            break
-        end
+        if matches[i].report.mode ~= first.report.mode then mixed = true break end
     end
     -- Chat stays short so screenshots and chat logs do not archive private reasons.
-    -- The on-screen banner may show the reason while it is visible.
+    -- The banner may show one author's reason, with that author's name attached.
+    local prefix = test and "TEST - " or ""
+    local mode = nil
+    local title
+    if mixed then
+        title = prefix .. name .. " - " .. #matches .. " reports"
+    else
+        mode = first.report.mode
+        title = prefix .. name .. " - " .. (STANCE_LABEL[mode] or "Listed")
+    end
     local detail = first.report.note ~= "" and first.report.note or "Listed enemy"
     detail = detail .. " (" .. A.personName(first.owner) .. ")"
-    if #matches > 1 then detail = detail .. " + " .. (#matches - 1) .. " more report(s)" end
+    if #matches > 1 then detail = detail .. " + " .. (#matches - 1) .. " more" end
     A.print(title)
     if A.store.settings.sound then A.playSound() end
-    if A.store.settings.banner and A.showBanner then A.showBanner(title, detail, test) end
+    if A.store.settings.banner and A.showBanner then A.showBanner(title, detail, test, mode) end
 end
 
 function A.detect(unit)

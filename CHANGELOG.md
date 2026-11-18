@@ -1,5 +1,12 @@
 # Forever Vendetta
 
+## 0.1.9
+
+- Banner color and label follow the stance. Mixed reports stay neutral and name one author.
+- The enemy name box locks while a saved enemy is selected, so a typo cannot create a second report.
+- Friend rows say "Last report" and the sync line shows the whisper queue.
+- README states the reload queue limit and that chat still prints when sound and banner are off.
+
 ## 0.1.8
 
 - UI lives under `UI/Window.lua`. CurseForge upload script and original 400×400 avatar added.

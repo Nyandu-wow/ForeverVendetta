@@ -1,6 +1,6 @@
 ﻿# Forever Vendetta — CurseForge project page
 
-Upload `dist/ForeverVendetta-0.1.8.zip` (or run `node scripts/upload-curseforge.mjs` after setup).
+Upload `dist/ForeverVendetta-0.1.9.zip` (or run `node scripts/upload-curseforge.mjs` after setup).
 
 - Game version: **WoW Forever 1.60.1**
 - Release type: **Beta** for first moderation
