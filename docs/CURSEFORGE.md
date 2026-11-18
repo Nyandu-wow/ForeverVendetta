@@ -1,6 +1,6 @@
 ﻿# Forever Vendetta — CurseForge project page
 
-Upload `dist/ForeverVendetta-0.1.9.zip` (or run `node scripts/upload-curseforge.mjs` after setup).
+Upload `dist/ForeverVendetta-0.1.9.zip` by hand in the author portal.
 
 - Game version: **WoW Forever 1.60.1**
 - Release type: **Beta** for first moderation
@@ -59,9 +59,8 @@ Paste the matching section from `CHANGELOG.md` into the file form.
 
 Source: https://github.com/Nyandu-wow/ForeverVendetta
 
-## Upload setup
+## Upload
 
-1. Create project at https://authors.curseforge.com/ (game: World of Warcraft).
-2. Copy `curseforge.example.json` → `curseforge.json` and set `projectId`.
-3. Copy `.env.example` → `.env` and set `CURSEFORGE_API_TOKEN`.
-4. `node scripts/upload-curseforge.mjs --list-versions` then `node scripts/upload-curseforge.mjs`.
+1. Create the project at https://authors.curseforge.com/ (game: World of Warcraft).
+2. Upload `dist/ForeverVendetta-0.1.9.zip` as a Beta file for WoW Forever 1.60.1.
+3. Set the avatar from `media/avatar-400.png` and paste the description above.

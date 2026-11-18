@@ -13,7 +13,4 @@ ignore:
   - dist
   - .tools
   - media
-  - scripts
-  - curseforge.example.json
-  - .env.example
   - "*.zip"
