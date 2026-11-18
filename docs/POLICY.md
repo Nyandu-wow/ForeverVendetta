@@ -25,7 +25,7 @@ References:
 
 | Expectation | How this project meets it |
 |---|---|
-| Clear English summary and description | Paste text lives in `CURSEFORGE.md`. |
+| Clear English summary and description | The description is on the CurseForge project page. |
 | Links at the bottom | GitHub and related links stay under a Links heading after the description. |
 | No third-party download links | CurseForge hosts the zip. |
 | Changelog on each file | Use `CHANGELOG.md`. |
