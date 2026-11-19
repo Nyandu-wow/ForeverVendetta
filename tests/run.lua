@@ -59,8 +59,23 @@ local function boot(name, saved, setup)
             local child=widget("FontString",self); child.font=font; return child
         end
         function w:CreateTexture(_,layer)
-            local child=widget("Texture",self); child.layer=layer; return child
+            local child=widget("Texture",self); child.layer=layer
+            function child:SetTexture(path) self.texture=path end
+            function child:SetAllPoints() end
+            function child:SetBlendMode(mode) self.blend=mode end
+            function child:SetDrawLayer(layerName, sub) self.layer=layerName; self.sublevel=sub end
+            return child
         end
+        function w:SetTextColor(...) self.textColor={...} end
+        function w:SetHitRectInsets() end
+        function w:SetToplevel() end
+        function w:RegisterForDrag() end
+        function w:SetFrameStrata(v) self.strata=v end
+        function w:SetMovable() end
+        function w:EnableMouse() end
+        function w:StartMoving() end
+        function w:StopMovingOrSizing() end
+        function w:SetClampedToScreen() end
         return w
     end
     env.CreateFrame = function(kind, globalName, parent, template)
@@ -463,6 +478,32 @@ test("A different realm string still warns for the same full name", function()
     eq(#x.sounds, 1)
 end)
 
+test("Class and race are remembered for the warning and stay off the whisper", function()
+    local x = boot("Alice River", nil, function(env)
+        env.UnitClass = function() return "Rogue", "ROGUE" end
+        env.UnitRace = function() return "Undead", "Scourge" end
+        env.UnitSex = function() return 3 end
+    end)
+    x.a.detect("target")
+    local face = x.a.faceFor("grim reaper-forever")
+    eq(face.class, "ROGUE")
+    eq(face.race, "SCOURGE")
+    eq(face.sex, 3)
+    check(x.a.report("Grim Reaper", "Camped", "AVOID"))
+    local report = x.a.entries()[1].report
+    eq(report.class, nil)
+    eq(report.race, nil)
+    local wire = x.a.wire(report)
+    check(not wire:find("ROGUE"), "class leaked onto the whisper")
+    check(not wire:find("SCOURGE"), "race leaked onto the whisper")
+    x.a.showBanner("Grim Reaper", "Camped", nil, "AVOID", face)
+    local banner = x.frames[#x.frames]
+    eq(banner.classIcon.texture, "Interface\\TargetingFrame\\UI-Classes-Circles")
+    eq(banner.raceIcon.texture, "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Races")
+    eq(banner.classIcon.shown, true)
+    eq(banner.raceIcon.shown, true)
+end)
+
 test("Banner stays up for six seconds and then hides", function()
     local x = boot("Alice River")
     x.a.showBanner("Grim Reaper", "Camped")
@@ -524,7 +565,7 @@ test("Search, stance filters and paging have bounded navigation",function()
     x.a.toggle()
     check(not findWidget(x,"Button","Previous").enabled)
     click(x,"Next"); check(not findWidget(x,"Button","Next").enabled)
-    click(x,"Avoid",function(w) return w.width==107 end)
+    click(x,"Avoid",function(w) return w.mark ~= nil and w.width == 74 end)
     local row=findWidget(x,"Button",nil,function(w) return type(w.group)=="table" end)
     eq(row.group.name,"Enemy Number7")
     local search=editors(x)[1]; search:SetText("nobody matches")
@@ -550,6 +591,27 @@ test("Friends setup validates full names and removal needs confirmation",functio
     findWidget(x,"FontString","Alice River")
     click(x,"Remove"); eq(x.a.count(x.a.store.friends),1)
     click(x,"Confirm"); eq(x.a.count(x.a.store.friends),0)
+end)
+
+test("Warning sound defaults to raid warning and the player can change it", function()
+    local x = boot("Alice River")
+    eq(x.a.store.settings.alertSound, "raid")
+    x.a.report("Grim Reaper", "Camped", "AVOID")
+    x.a.detect("target")
+    eq(x.sounds[1][1], 8959)
+    eq(x.sounds[1][2], "Master")
+    x.env.SlashCmdList.FOREVERVENDETTA("sound ping")
+    eq(x.a.store.settings.alertSound, "ping")
+    eq(x.sounds[2][1], 3175)
+    x.advance(60)
+    x.a.detect("target")
+    eq(x.sounds[3][1], 3175)
+    x.a.store.settings.alertSound = "nope"
+    local reloaded = boot("Alice River", x.env.ForeverVendettaDB)
+    eq(reloaded.a.store.settings.alertSound, "raid")
+    x.a.toggle(); click(x, "Alerts"); click(x, "Level")
+    eq(x.a.store.settings.alertSound, "level")
+    eq(x.sounds[#x.sounds][1], 888)
 end)
 
 test("Alerts controls update existing settings and preview respects sound",function()
@@ -653,6 +715,33 @@ test("A selected enemy keeps its name locked", function()
     eq(editors(x)[2].enabled, false)
     click(x, "Add enemy")
     eq(editors(x)[2].enabled, true)
+end)
+
+test("Mixed chips and report blocks keep authors separate", function()
+    local x = boot("Alice River")
+    x.a.trust("Bob Stone")
+    x.a.report("Grim Reaper", "My note", "AVENGE")
+    x.a.merge("bob stone-forever", { name = "Grim Reaper", realm = "Forever", note = "Bob note", mode = "AVOID", rev = 1, deleted = false })
+    x.a.toggle()
+    local row = findWidget(x, "Button", nil, function(w) return type(w.group) == "table" end)
+    eq(row.tag:GetText(), "Mixed")
+    check(row.detail:GetText():find("yours", 1, true) ~= nil)
+    row.scripts.OnClick(row)
+    findWidget(x, "FontString", nil, function(w)
+        return type(w.text) == "string" and w.text:find("You · Avenge · yours", 1, true)
+    end)
+    findWidget(x, "FontString", nil, function(w)
+        return type(w.text) == "string" and w.text:find("Bob Stone · Avoid · friend", 1, true)
+    end)
+    findWidget(x, "FontString", nil, function(w)
+        return type(w.text) == "string" and w.text:find("Warn your friends", 1, true) == nil and w.text:find("another fight", 1, true) ~= nil
+    end)
+end)
+
+test("Slash command is /fv only", function()
+    local x = boot("Alice River")
+    eq(x.env.SLASH_FOREVERVENDETTA1, "/fv")
+    eq(x.env.SLASH_FOREVERVENDETTA2, nil)
 end)
 
 test("Sync status counts queued whispers", function()

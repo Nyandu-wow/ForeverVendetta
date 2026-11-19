@@ -73,6 +73,7 @@ function A.init()
     if type(A.store.reports[A.me.key]) ~= "table" then A.store.reports[A.me.key] = {} end
     local s = A.store.settings
     if s.sound == nil then s.sound = true end
+    if not A.soundById(s.alertSound) then s.alertSound = "raid" end
     if s.banner == nil then s.banner = true end
     if s.instances == nil then s.instances = false end
     s.cooldown = tonumber(s.cooldown) or 60

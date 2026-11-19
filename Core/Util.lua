@@ -59,6 +59,23 @@ function A.print(msg)
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffff7055Vendetta|r: " .. msg) end
 end
 
+-- Built-in Classic-era SoundKit ids. Skip later PvP / war-drums kits Forever may not ship.
+A.ALERT_SOUNDS = {
+    { id = "raid", label = "Raid", file = 8959, kit = "RAID_WARNING" },
+    { id = "ready", label = "Ready", file = 8960, kit = "READY_CHECK" },
+    { id = "ping", label = "Ping", file = 3175, kit = "MAP_PING" },
+    { id = "auction", label = "Auction", file = 5274, kit = "AUCTION_WINDOW_OPEN" },
+    { id = "level", label = "Level", file = 888 },
+    { id = "tell", label = "Tell", file = 3081, kit = "TELL_MESSAGE" },
+}
+
+function A.soundById(id)
+    if not A.plain(id, "string") then return nil end
+    for _, sound in ipairs(A.ALERT_SOUNDS) do
+        if sound.id == id then return sound end
+    end
+end
+
 function A.flag(fn, ...)
     local value = A.call(fn, ...)
     return A.plain(value, "boolean") and value == true

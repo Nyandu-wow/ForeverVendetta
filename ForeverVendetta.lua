@@ -10,7 +10,7 @@ local function help()
     A.print("/fv opens the window. Blacklist, Friends, and Alerts are the three tabs.")
     A.print("/fv add Full Name; reason  |  /fv target reason  |  /fv remove Full Name")
     A.print("/fv trust Friend Fullname  |  /fv untrust Friend Fullname  |  /fv sync")
-    A.print("/fv sound on/off  |  /fv banner on/off  |  /fv instances on/off")
+    A.print("/fv sound on/off  |  /fv sound raid  |  /fv banner on/off  |  /fv instances on/off")
     A.print("/fv cooldown 60  |  /fv test  |  /fv status")
 end
 
@@ -42,7 +42,23 @@ local function command(text)
             ok, err = A.report(name or rest, note or "")
         end
         A.print(ok and "Your report saved and queued for sharing." or err)
-    elseif cmd == "sound" or cmd == "banner" or cmd == "instances" then
+    elseif cmd == "sound" then
+        if rest == "on" or rest == "off" then
+            A.store.settings.sound = rest == "on"; A.changed(); A.print("sound: " .. rest)
+        else
+            local choice = A.soundById(rest:lower())
+            if not choice then
+                local names = {}
+                for _, sound in ipairs(A.ALERT_SOUNDS) do names[#names + 1] = sound.id end
+                A.print("Sounds: " .. table.concat(names, ", "))
+                return
+            end
+            A.store.settings.alertSound = choice.id
+            A.playSound()
+            A.changed()
+            A.print("Warning sound: " .. choice.label)
+        end
+    elseif cmd == "banner" or cmd == "instances" then
         if rest ~= "on" and rest ~= "off" then help(); return end
         A.store.settings[cmd] = rest == "on"; A.changed(); A.print(cmd .. ": " .. rest)
     elseif cmd == "cooldown" then
@@ -53,7 +69,6 @@ local function command(text)
 end
 
 SLASH_FOREVERVENDETTA1 = "/fv"
-SLASH_FOREVERVENDETTA2 = "/vendetta"
 SlashCmdList.FOREVERVENDETTA = command
 
 frame:SetScript("OnEvent", function(_, event, ...)

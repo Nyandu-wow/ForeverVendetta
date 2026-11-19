@@ -2,11 +2,11 @@
 
 A small, standalone **WoW Forever / Camelot (Interface 16001)** addon for a private group of friends. Keep enemy reports, share reasons, and hear a warning when a listed enemy becomes visible.
 
-**Version 0.1.9 — clearer alerts, locked enemy names, and honest sync status.**
+**Version 0.1.16 — Classic warning sounds, metal and rock window, and `/fv` only.**
 
 ## Install
 
-Extract `ForeverVendetta-0.1.9.zip` into the Forever client's `Interface/AddOns/` directory. The result must be `Interface/AddOns/ForeverVendetta/ForeverVendetta.toc` with the `Core/` and `UI/` Lua files beside it. Restart WoW if it was running when you installed the folder, then enable Forever Vendetta in AddOns.
+Extract `ForeverVendetta-0.1.16.zip` into the Forever client's `Interface/AddOns/` directory. The result must be `Interface/AddOns/ForeverVendetta/ForeverVendetta.toc` with the `Core/` and `UI/` Lua files beside it. Restart WoW if it was running when you installed the folder, then enable Forever Vendetta in AddOns.
 
 This addon is free of charge. It does not connect to the Internet. Reports move only as hidden whispers between characters you add by their full name. There are no ads, premium unlocks, or in-game donation prompts.
 
@@ -24,13 +24,13 @@ Data stays in local SavedVariables and in addon whispers to characters you typed
 2. Open `/fv`, click **Friends**, and enter each other's **full character names, including surnames** (`First Last`). `First-Last` is the same character. Both players must do this; friendship on Battle.net does not configure the addon.
 3. On **Blacklist**, target an enemy player and click **Add target**. The editor fills their full name. Add a reason, choose **Avenge**, **Avoid**, or **Watch**, and click **Save report**.
 4. The friend receives that report while both characters are online and addon messaging is available. **Sync with friends** on the Friends tab queues reconciliation; periodic checks also run every two minutes.
-5. Enable **enemy nameplates** and **Always show nameplates** in the game's options. A matching enemy on a nameplate, target, focus, or mouseover triggers a built-in raid-warning sound on the Master channel, a six-second banner, and a chat message. The normal sound settings and global audio mute still apply.
+5. Enable **enemy nameplates** and **Always show nameplates** in the game's options. A matching enemy on a nameplate, target, focus, or mouseover triggers the warning sound you chose, a six-second banner, and a chat message. The default sound is the raid warning, on the Master channel. The normal sound settings and global audio mute still apply.
 
-Open **Alerts** and use **Preview alert** before meeting an actual listed enemy. Sound, banner, instance warnings, and the repeat-warning slider are all on that tab. The default cooldown is 60 seconds per enemy across all detection sources.
+Open **Alerts** and use **Preview alert** before meeting an actual listed enemy. Sound, the warning-sound choices, banner, instance warnings, and the repeat-warning slider are all on that tab. Click a sound to hear it. The default cooldown is 60 seconds per enemy across all detection sources.
 
 ## Using the window
 
-- **Blacklist:** each enemy has one row, even when several friends report them. Search names, reporters or reasons, and filter by Avenge, Avoid or Watch. Mixed reports are labelled explicitly. Click a row to read every authored reason in the scrollable history and edit your own report alongside it.
+- **Blacklist:** each enemy has one row, even when several friends report them. Search names, reporters or reasons, and filter by Avenge, Avoid or Watch. Mixed stances are labelled Mixed. Click a row to read each author's report as its own block and edit your own report alongside them.
 - **Your report:** choosing a friend's enemy does not copy their reason into yours. Use **Add enemy** for manual entry or **Add target** for the selected enemy. Feedback appears inside the window; incoming sync updates preserve your unsaved text.
 - **Withdraw mine:** click once, then **Confirm removal**. This withdraws only your current character's report. The enemy remains listed if a friend still has a report.
 - **Friends:** enter a full character name, then ask that friend to add the character name shown in the setup panel. Removing a friend also takes a second click to confirm. Received-report labels do not claim the friend is currently online or that trust is mutual.
@@ -64,14 +64,16 @@ Alerts are disabled inside instances by default. `/fv instances on` opts in to s
 
 ## Commands
 
-- `/fv` or `/vendetta`: open or close the blacklist.
+- `/fv`: open or close the blacklist.
 - `/fv friends`: configure trusted friends.
 - `/fv target reason`: report the selected enemy, defaulting to AVENGE.
 - `/fv add First Last; reason`: manually report an enemy on your realm.
 - `/fv remove First Last`: withdraw your current character's report.
 - `/fv trust First Last` / `/fv untrust First Last`: manage a trusted character.
 - `/fv sync`: queue synchronization with trusted friends.
-- `/fv sound on` / `off`, `/fv banner on` / `off`: configure warnings.
+- `/fv sound on` / `off`: turn the warning sound on or off.
+- `/fv sound raid`: choose the warning sound. Names: raid, ready, ping, auction, level, tell.
+- `/fv banner on` / `off`: configure the on-screen warning.
 - `/fv cooldown 60`: choose 10–600 seconds between warnings per enemy.
 - `/fv instances on` / `off`: configure instance alerts.
 - `/fv test`, `/fv status`, `/fv help`: test, diagnose, or view help.
@@ -99,4 +101,4 @@ The source has an offline mocked-API regression suite, which cannot prove Foreve
 
 Development tests live in `tests/run.lua`. Run with Lua 5.1 or later from the repository root: `lua tests/run.lua`. The build was also exercised with the Fengari development interpreter; it is not an addon dependency.
 
-To rebuild the ZIP on Windows, run `powershell -File package.ps1` from repository root. The output is `dist/ForeverVendetta-0.1.9.zip`. The zip contains only the TOC, Lua under `Core/` and `UI/`, README, changelog, and license. Policy, privacy, and security notes live in `docs/`. Avatar: `media/avatar-400.png`. ForeverLAN is a different addon and repository. Source: https://github.com/Nyandu-wow/ForeverVendetta
+To rebuild the ZIP on Windows, run `powershell -File package.ps1` from repository root. The output is `dist/ForeverVendetta-0.1.16.zip`. The zip contains only the TOC, Lua under `Core/` and `UI/`, README, changelog, and license. Policy, privacy, and security notes live in `docs/`. Avatar: `media/avatar-400.png`. ForeverLAN is a different addon and repository. Source: https://github.com/Nyandu-wow/ForeverVendetta

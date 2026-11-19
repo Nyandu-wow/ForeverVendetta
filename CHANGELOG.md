@@ -1,5 +1,41 @@
 # Forever Vendetta
 
+## 0.1.16
+
+- Alerts sound choices stay inside the window. The list is Classic-era sounds Forever can play: Raid, Ready, Ping, Auction, Level, Tell. Older names such as Drums fall back to Raid.
+
+## 0.1.15
+
+- Alerts lets you pick the warning sound. Raid warning stays the default. The choice is saved with your other alert settings and is not shared.
+
+## 0.1.14
+
+- The window uses metal trim, a rock panel, and character-sheet tabs.
+- Blacklist rows, the report header, and the warning show a class icon and a race icon when the client can read them. They are not saved or whispered.
+
+## 0.1.13
+
+- One dark ledger. Quiet controls, burgundy only for the selected tab and for remove or withdraw.
+- Friends, blacklist, and alerts each keep their own actions. A single page hides its pager.
+
+## 0.1.12
+
+- One window again. The page is parchment inside the normal frame, with Blacklist, Friends, and Alerts as tabs in the header.
+- List and detail share that page, split by a single rule.
+
+## 0.1.11
+
+- Window opens as a two-page Forever spellbook using the game's spellbook panel art.
+- Side tabs switch Blacklist, Friends, and Alerts. List and detail sit on facing pages.
+- Parchment ink colors replace the flat dark panels.
+
+## 0.1.10
+
+- Blacklist rows are denser, with clearer Mixed chips and author summaries.
+- Each friend's report is shown as its own block with a stance-colored edge.
+- Stance buttons use stance colors, and a short hint follows the selected stance.
+- Warning banner hierarchy is category, title, then detail. Slash command is `/fv` only.
+
 ## 0.1.9
 
 - Banner color and label follow the stance. Mixed reports stay neutral and name one author.
