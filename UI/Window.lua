@@ -522,6 +522,7 @@ function A.refresh()
         end
     end
     for key, c in pairs(ui.checks) do c:SetChecked(A.store.settings[key] == true) end
+    if A.refreshMinimap then A.refreshMinimap() end
     if ui.soundButtons then
         local current = A.soundById(A.store.settings.alertSound)
         current = current and current.id
@@ -771,9 +772,10 @@ local function buildAlerts()
         { "sound", "Play a warning sound", "The sound chosen on the right, on the Master channel." },
         { "banner", "Show an on-screen warning", "Six-second banner with the enemy and one reason." },
         { "instances", "Also warn inside instances", "Off by default. Client limits still apply." },
+        { "minimapButton", "Show minimap button", "Left-click opens the window. Right-click opens Friends. Drag to move." },
     }) do
         local c = CreateFrame("CheckButton", nil, settings, "UICheckButtonTemplate")
-        c:SetPoint("TOPLEFT", 10, -81 - (i - 1) * 58)
+        c:SetPoint("TOPLEFT", 10, -81 - (i - 1) * 52)
         c:SetSize(26, 26)
         text(c, spec[2], 30, 2, 270, "GameFontHighlight", INK)
         text(c, spec[3], 30, 18, 270, "GameFontHighlightSmall", INK_MUTED)

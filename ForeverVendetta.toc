@@ -3,9 +3,13 @@
 ## Title: Forever Vendetta
 ## Notes: Free friends-only enemy notes with visible-unit warnings. No Internet. /fv
 ## Author: Nyandu
-## Version: 0.1.16
+## Version: 0.1.18
 ## X-License: All Rights Reserved
 ## X-Website: https://github.com/Nyandu-wow/ForeverVendetta
+## IconTexture: Interface\Icons\Ability_DualWield
+## AddonCompartmentFunc: ForeverVendetta_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: ForeverVendetta_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: ForeverVendetta_OnAddonCompartmentLeave
 ## SavedVariables: ForeverVendettaDB
 ## DefaultState: enabled
 
@@ -15,4 +19,6 @@ Core\Store.lua
 Core\Detect.lua
 Comms.lua
 UI\Window.lua
+UI\Minimap.lua
+UI\Options.lua
 ForeverVendetta.lua

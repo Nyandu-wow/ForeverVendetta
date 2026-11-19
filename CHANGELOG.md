@@ -1,5 +1,14 @@
 # Forever Vendetta
 
+## 0.1.18
+
+- Forever Vendetta appears under Options → AddOns, with an open button and minimap toggle.
+- The minimap button follows Forever's stock circular map radius so it sits on the ring instead of inside the chrome.
+
+## 0.1.17
+
+- A minimap button opens the blacklist (left-click) and Friends (right-click). Drag it around the minimap. Alerts can hide it. Stock Forever also lists Forever Vendetta in the minimap addon menu.
+
 ## 0.1.16
 
 - Alerts sound choices stay inside the window. The list is Classic-era sounds Forever can play: Raid, Ready, Ping, Auction, Level, Tell. Older names such as Drums fall back to Raid.

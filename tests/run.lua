@@ -12,6 +12,7 @@ local function boot(name, saved, setup)
     env._G = env
     env.SlashCmdList, env.UISpecialFrames = {}, {}
     env.UIParent = { GetWidth=function() return 1280 end, GetHeight=function() return 720 end }
+    env.GetCursorPosition = function() return 0, 0 end
     local widgets = {}
     local function widget(kind, parent, template)
         local w = { scripts = {}, shown = true, text = "", kind = kind, parent = parent,
@@ -76,6 +77,18 @@ local function boot(name, saved, setup)
         function w:StartMoving() end
         function w:StopMovingOrSizing() end
         function w:SetClampedToScreen() end
+        function w:GetCenter() return self.cx or 0, self.cy or 0 end
+        function w:GetEffectiveScale() return self.scale or 1 end
+        function w:GetWidth() return self.width or 140 end
+        function w:GetHeight() return self.height or 140 end
+        function w:ClearAllPoints() end
+        function w:LockHighlight() end
+        function w:UnlockHighlight() end
+        function w:SetHighlightTexture() end
+        function w:RegisterForClicks() end
+        function w:SetFixedFrameStrata() end
+        function w:SetFixedFrameLevel() end
+        function w:SetTexCoord() end
         return w
     end
     env.CreateFrame = function(kind, globalName, parent, template)
@@ -85,6 +98,17 @@ local function boot(name, saved, setup)
         if globalName then env[globalName] = w end
         return w
     end
+    env.Minimap = widget("Frame"); env.Minimap.cx, env.Minimap.cy = 100, 100
+    env.Minimap.width, env.Minimap.height = 180, 180
+    env.GetMinimapShape = function() return "ROUND" end
+    env._addonCats = {}
+    env.Settings = {
+        RegisterCanvasLayoutCategory = function(p, name)
+            return { name = name, panel = p, GetID = function(self) return self.name end }
+        end,
+        RegisterAddOnCategory = function(cat) env._addonCats[#env._addonCats + 1] = cat end,
+        OpenToCategory = function(id) env._openedCategory = id end,
+    }
     env.GetNormalizedRealmName = function() return "Forever" end
     env.UnitName = function(unit)
         if unit == "player" then return name:match("^(%S+)%s+(.+)$") end
@@ -113,7 +137,7 @@ local function boot(name, saved, setup)
     if setup then setup(env) end
     for _, file in ipairs({
         "Core/Util.lua", "Core/Identity.lua", "Core/Store.lua", "Core/Detect.lua",
-        "Comms.lua", "UI/Window.lua", "ForeverVendetta.lua",
+        "Comms.lua", "UI/Window.lua", "UI/Minimap.lua", "UI/Options.lua", "ForeverVendetta.lua",
     }) do
         local chunk
         if _VERSION == "Lua 5.1" then chunk = assert(loadfile(ROOT .. file)); setfenv(chunk, env)
@@ -591,6 +615,31 @@ test("Friends setup validates full names and removal needs confirmation",functio
     findWidget(x,"FontString","Alice River")
     click(x,"Remove"); eq(x.a.count(x.a.store.friends),1)
     click(x,"Confirm"); eq(x.a.count(x.a.store.friends),0)
+end)
+
+test("Minimap button opens the window and can be hidden", function()
+    local x = boot("Alice River")
+    eq(x.a.store.settings.minimapButton, true)
+    local btn = x.env.ForeverVendettaMinimapButton
+    check(btn ~= nil)
+    eq(btn.shown, true)
+    btn.scripts.OnClick(btn, "LeftButton")
+    check(x.env.ForeverVendettaWindow:IsShown())
+    btn.scripts.OnClick(btn, "RightButton")
+    check(x.env.ForeverVendettaFriends:IsShown())
+    x.env.SlashCmdList.FOREVERVENDETTA("minimap off")
+    eq(x.a.store.settings.minimapButton, false)
+    eq(btn.shown, false)
+    check(type(x.env.ForeverVendetta_OnAddonCompartmentClick) == "function")
+end)
+
+test("Options AddOns category registers Forever Vendetta", function()
+    local x = boot("Alice River")
+    check(x.env.ForeverVendettaOptions ~= nil)
+    eq(#x.env._addonCats, 1)
+    eq(x.env._addonCats[1].name, "Forever Vendetta")
+    x.env.SlashCmdList.FOREVERVENDETTA("options")
+    eq(x.env._openedCategory, "Forever Vendetta")
 end)
 
 test("Warning sound defaults to raid warning and the player can change it", function()

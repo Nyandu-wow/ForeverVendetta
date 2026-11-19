@@ -8,6 +8,8 @@ end
 
 local function help()
     A.print("/fv opens the window. Blacklist, Friends, and Alerts are the three tabs.")
+    A.print("Minimap button: left-click opens, right-click friends. /fv minimap on/off")
+    A.print("/fv options opens the AddOns options page.")
     A.print("/fv add Full Name; reason  |  /fv target reason  |  /fv remove Full Name")
     A.print("/fv trust Friend Fullname  |  /fv untrust Friend Fullname  |  /fv sync")
     A.print("/fv sound on/off  |  /fv sound raid  |  /fv banner on/off  |  /fv instances on/off")
@@ -58,6 +60,13 @@ local function command(text)
             A.changed()
             A.print("Warning sound: " .. choice.label)
         end
+    elseif cmd == "options" or cmd == "config" then
+        if A.openOptions then A.openOptions() else A.toggle() end
+    elseif cmd == "minimap" then
+        if rest ~= "on" and rest ~= "off" then help(); return end
+        A.store.settings.minimapButton = rest == "on"
+        A.changed()
+        A.print("minimap button: " .. rest)
     elseif cmd == "banner" or cmd == "instances" then
         if rest ~= "on" and rest ~= "off" then help(); return end
         A.store.settings[cmd] = rest == "on"; A.changed(); A.print(cmd .. ": " .. rest)
@@ -80,7 +89,11 @@ frame:SetScript("OnEvent", function(_, event, ...)
         end
     elseif event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
         if not A.ready and A.init() then A.print("Ready. /fv opens your blacklist; /fv friends sets up sharing.") end
-        if A.ready then A.sync() end
+        if A.ready then
+            if A.buildMinimap then A.buildMinimap() end
+            if A.buildOptions then A.buildOptions() end
+            A.sync()
+        end
     elseif event == "CHAT_MSG_ADDON" then A.receive(...)
     elseif event == "NAME_PLATE_UNIT_ADDED" then A.detect(...)
     elseif event == "PLAYER_TARGET_CHANGED" then A.detect("target")

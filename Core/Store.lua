@@ -76,6 +76,8 @@ function A.init()
     if not A.soundById(s.alertSound) then s.alertSound = "raid" end
     if s.banner == nil then s.banner = true end
     if s.instances == nil then s.instances = false end
+    if s.minimapButton == nil then s.minimapButton = true end
+    s.minimapAngle = tonumber(s.minimapAngle) or 220
     s.cooldown = tonumber(s.cooldown) or 60
     A.lastAlert, A.lastSeen = {}, {}
     A.ready = true
@@ -84,6 +86,7 @@ end
 
 function A.changed()
     if A.refresh then A.refresh() end
+    if A.refreshOptions then A.refreshOptions() end
 end
 
 function A.trust(name)
