@@ -56,7 +56,7 @@ function A.init()
     A.db = ForeverVendettaDB
     if type(A.db.realms) ~= "table" then A.db.realms = {} end
     local realm = A.realm()
-    if realm == "" then return false end
+    -- A.realm() always returns a usable bucket (Forever fallback). First Last is identity.
     local key = realm:lower()
     local store = A.db.realms[key]
     if type(store) ~= "table" then store = {} end

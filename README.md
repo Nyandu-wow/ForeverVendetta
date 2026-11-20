@@ -2,11 +2,11 @@
 
 A small, standalone **WoW Forever / Camelot (Interface 16001)** addon for a private group of friends. Keep enemy reports, share reasons, and hear a warning when a listed enemy becomes visible.
 
-**Version 0.1.41 — Fix player identity ready (GetUnitName realm suffix).**
+**Version 0.1.42 — Realm APIs optional; First Last is identity.**
 
 ## Install
 
-Extract `ForeverVendetta-0.1.41.zip` into the Forever client's `Interface/AddOns/` directory. The result must be `Interface/AddOns/ForeverVendetta/ForeverVendetta.toc` with the `Core/` and `UI/` Lua files beside it. Restart WoW if it was running when you installed the folder, then enable Forever Vendetta in AddOns. On Windows, rebuild with `powershell -File package.ps1` only — do not zip the whole repo folder.
+Extract `ForeverVendetta-0.1.42.zip` into the Forever client's `Interface/AddOns/` directory. The result must be `Interface/AddOns/ForeverVendetta/ForeverVendetta.toc` with the `Core/` and `UI/` Lua files beside it. Restart WoW if it was running when you installed the folder, then enable Forever Vendetta in AddOns. On Windows, rebuild with `powershell -File package.ps1` only — do not zip the whole repo folder.
 
 This addon is free of charge. It does not connect to the Internet. Reports move only as hidden whispers between characters you add by their full name. There are no ads, premium unlocks, or in-game donation prompts.
 
@@ -62,7 +62,7 @@ This initial version supports up to 20 trusted characters on the same realm and 
 
 ## Detection boundaries
 
-Warnings require a readable full name. On current Forever, `UnitName`, `UnitNameUnmodified`, and `UnitFullName` return a first name and a surname; that second value is not a realm. The realm stored with a report comes from `GetNormalizedRealmName` or `GetRealmName`. `GetUnitName` supplies `First Last` when it is readable. If any of those calls returns a secret, the unit is skipped. A first name alone is ignored. This is visible-unit detection, not a zone-wide radar; it cannot find hidden enemies, reveal stealth, or guarantee a particular detection distance. Secret or inaccessible values are skipped. A new report can trigger a warning for a currently visible enemy on the next one-second scan.
+Warnings require a readable full name (**First Last**). On current Forever, `UnitName`, `UnitNameUnmodified`, and `UnitFullName` return a first name and a surname; that second value is not a realm. Realm APIs are optional storage metadata — if unread, the addon uses `Forever`. `GetUnitName` supplies `First Last` when it is readable. If any of those calls returns a secret, the unit is skipped. A first name alone is ignored. This is visible-unit detection, not a zone-wide radar; it cannot find hidden enemies, reveal stealth, or guarantee a particular detection distance. Secret or inaccessible values are skipped. A new report can trigger a warning for a currently visible enemy on the next one-second scan.
 
 Open-world alerts are on by default. Battlegrounds and arenas stay off until you enable them with `/fv battlegrounds on` or `/fv arenas on`, or the Alerts checkboxes. Client restrictions still apply. The addon never targets or attacks for you and does not read the combat log. Local **D/K** tallies (deaths to that enemy / your kills of them) use Forever’s death recap, damage meter, and PARTY_KILL when readable — approximate and **local only**, never whispered. They are not a verified kill feed.
 
@@ -114,4 +114,4 @@ The source has an offline mocked-API regression suite, which cannot prove Foreve
 
 Development tests live in `tests/run.lua`. Run with Lua 5.1 or later from the repository root: `lua tests/run.lua`. The build was also exercised with the Fengari development interpreter; it is not an addon dependency.
 
-To rebuild the ZIP on Windows, run `powershell -File package.ps1` from repository root. The output is `dist/ForeverVendetta-0.1.41.zip`. The zip contains only the TOC, Lua under `Core/` and `UI/`, README, changelog, and license. Policy, privacy, and security notes live in `docs/`. Avatar: `media/avatar-400.png`. ForeverLAN is a different addon and repository. Source: https://github.com/Nyandu-wow/ForeverVendetta
+To rebuild the ZIP on Windows, run `powershell -File package.ps1` from repository root. The output is `dist/ForeverVendetta-0.1.42.zip`. The zip contains only the TOC, Lua under `Core/` and `UI/`, README, changelog, and license. Policy, privacy, and security notes live in `docs/`. Avatar: `media/avatar-400.png`. ForeverLAN is a different addon and repository. Source: https://github.com/Nyandu-wow/ForeverVendetta

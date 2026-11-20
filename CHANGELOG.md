@@ -1,5 +1,9 @@
 # Forever Vendetta
 
+## 0.1.42
+
+- Forever identity is First Last. When realm APIs are empty/secret, fall back to `Forever` so init is not blocked — realm is only an internal storage key, not a player-facing requirement.
+
 ## 0.1.41
 
 - Fix init never becoming ready when `GetUnitName(..., true)` returns `First Last-RealmLabel` that does not match the local realm string (identity rejected the hyphen). Strips the suffix; prefers UnitName-style APIs first.

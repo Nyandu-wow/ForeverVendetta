@@ -520,6 +520,17 @@ test("GetUnitName server suffix does not block First Last identity", function()
     eq(x.a.unitName("target").key, "grim reaper-forever")
 end)
 
+test("Empty realm APIs fall back to Forever so First Last can still init", function()
+    local x = boot("Alice River", nil, function(env)
+        env.GetNormalizedRealmName = function() return nil end
+        env.GetRealmName = function() return nil end
+    end)
+    eq(x.a.realm(), "Forever")
+    eq(x.a.ready, true)
+    eq(x.a.me.name, "Alice River")
+    eq(x.a.me.key, "alice river-forever")
+end)
+
 test("Hyphenated addon senders are surnames and whispers use the full name", function()
     local x, y = boot("Alice River"), boot("Bob Stone")
     check(x.a.trust("Bob-Stone"))

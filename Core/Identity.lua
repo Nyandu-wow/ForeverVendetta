@@ -1,11 +1,17 @@
 local _, A = ...
 
--- Realm comes only from the realm APIs. Never boolean-test a secret return.
+-- Forever identity is First Last. Realm is only an internal SavedVariables / wire
+-- key suffix — not a player-facing concept. Never boolean-test a secret return.
+-- When Forever leaves realm APIs empty or secret, fall back so init is not bricked.
+A.DEFAULT_REALM = "Forever"
+
 function A.realm()
     local r = A.call(GetNormalizedRealmName)
     if not (A.plain(r, "string") and r ~= "") then r = A.call(GetRealmName) end
     r = A.text(r, 48) or ""
-    return (r:gsub("%s+", ""))
+    r = r:gsub("%s+", "")
+    if r == "" then return A.DEFAULT_REALM end
+    return r
 end
 
 local function token(v)

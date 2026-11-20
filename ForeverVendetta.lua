@@ -29,11 +29,7 @@ local function ensureReady()
         if A.hookUnitMenus then A.hookUnitMenus() end
         return true
     end
-    local realm = A.realm and A.realm() or ""
-    local me = A.unitName and A.unitName("player")
-    if realm == "" then
-        A.print("Player identity not ready: realm unread. Try /reload after zoning.")
-    elseif not me then
+    if not (A.unitName and A.unitName("player")) then
         A.print("Player identity not ready: full name unread. Try /reload after entering the world.")
     else
         A.print("Player identity not ready. Try /reload after entering the world.")
