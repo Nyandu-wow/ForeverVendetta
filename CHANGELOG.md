@@ -1,5 +1,10 @@
 # Forever Vendetta
 
+## 0.1.41
+
+- Fix init never becoming ready when `GetUnitName(..., true)` returns `First Last-RealmLabel` that does not match the local realm string (identity rejected the hyphen). Strips the suffix; prefers UnitName-style APIs first.
+- `/fv` retries init and rebuilds minimap/hooks if login was too early; clearer unread realm/name messages.
+
 ## 0.1.40
 
 - Split `UI/Window.lua` into tab modules: `Widgets`, `Banner`, `Friends`, `Alerts`; window shell uses shared `ctx` (`A._win`) and `A.UI` helpers. No behavior change intended.

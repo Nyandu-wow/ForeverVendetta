@@ -3,7 +3,7 @@
 ## Title: Forever Vendetta
 ## Notes: Free friends-only enemy notes with visible-unit warnings. No Internet. /fv
 ## Author: Nyandu
-## Version: 0.1.40
+## Version: 0.1.41
 ## X-License: All Rights Reserved
 ## X-Website: https://github.com/Nyandu-wow/ForeverVendetta
 ## IconTexture: Interface\Icons\Ability_DualWield

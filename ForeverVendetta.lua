@@ -18,8 +18,31 @@ local function help()
     A.print("/fv cooldown 60  |  /fv test  |  /fv status")
 end
 
+local function ensureReady()
+    if A.ready then return true end
+    if A.init and A.init() then
+        A.print("Ready. /fv opens your blacklist; /fv friends sets up sharing.")
+        if A.buildMinimap then A.buildMinimap() end
+        if A.buildOptions then A.buildOptions() end
+        if A.hookTooltips then A.hookTooltips() end
+        if A.buildTargetButton then A.buildTargetButton() end
+        if A.hookUnitMenus then A.hookUnitMenus() end
+        return true
+    end
+    local realm = A.realm and A.realm() or ""
+    local me = A.unitName and A.unitName("player")
+    if realm == "" then
+        A.print("Player identity not ready: realm unread. Try /reload after zoning.")
+    elseif not me then
+        A.print("Player identity not ready: full name unread. Try /reload after entering the world.")
+    else
+        A.print("Player identity not ready. Try /reload after entering the world.")
+    end
+    return false
+end
+
 local function command(text)
-    if not A.ready then A.print("Player identity not ready. Try after entering the world."); return end
+    if not ensureReady() then return end
     if not A.plain(text, "string") then text = "" end
     local cmd, rest = text:match("^%s*(%S*)%s*(.-)%s*$")
     cmd = cmd:lower()

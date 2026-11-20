@@ -496,6 +496,30 @@ test("Secret realm falls back and a secret surname is not a first name", functio
     eq(x.a.unitName("target"), nil, "first name alone is not an identity")
 end)
 
+test("GetUnitName server suffix does not block First Last identity", function()
+    local x = boot("Alice River", nil, function(env)
+        env.GetNormalizedRealmName = function() return "Forever" end
+        env.GetRealmName = function() return "Forever" end
+        -- Mismatched realm label (spaces / ruleset) used to keep "First Last-Label"
+        -- and A.identity rejected the hyphen — init never became ready.
+        env.GetUnitName = function(unit, showServer)
+            if unit == "player" then
+                if showServer then return "Alice River-Classic Beta PvE" end
+                return "Alice River"
+            end
+            if showServer then return "Grim Reaper-Classic Beta PvE" end
+            return "Grim Reaper"
+        end
+        env.UnitName = function() return nil end
+        env.UnitNameUnmodified = function() return nil end
+        env.UnitFullName = function() return nil end
+    end)
+    eq(x.a.me.name, "Alice River")
+    eq(x.a.ready, true)
+    eq(x.a.unitName("target").name, "Grim Reaper")
+    eq(x.a.unitName("target").key, "grim reaper-forever")
+end)
+
 test("Hyphenated addon senders are surnames and whispers use the full name", function()
     local x, y = boot("Alice River"), boot("Bob Stone")
     check(x.a.trust("Bob-Stone"))

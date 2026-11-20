@@ -25,8 +25,11 @@ function A.unitName(unit)
         local lower = first:lower()
         if lower == "unknown" or lower == "unknown entity" then return nil end
         if first:find("%s") then
+            -- GetUnitName(..., true) often appends "-Realm". Forever identity forbids
+            -- hyphens in the character name, so strip any trailing -Token once the body
+            -- is already First Last — even when the realm label does not match ours.
             local body, suffix = first:match("^(.*)%-([^%-]+)$")
-            if body and body:find("%s") and suffix and suffix:gsub("%s", ""):lower() == norm and norm ~= "" then
+            if body and body:find("%s") and suffix then
                 return body
             end
             return first
@@ -49,12 +52,18 @@ function A.unitName(unit)
         if hidden(first) or hidden(second) then blocked = true end
         if blocked then return end
         local full = fullFrom(first, second)
-        if full and full:find("%s") then best = best or full end
+        -- Only keep candidates that identity will accept (avoids a hyphenated
+        -- GetUnitName result blocking a later clean UnitName pair).
+        if full and full:find("%s") and A.identity(full, realm) then best = best or full end
     end
-    if type(GetUnitName) == "function" then consider(A.call(GetUnitName, unit, true)) end
+    -- Prefer APIs that return First + Last separately before GetUnitName with server.
     if type(UnitNameUnmodified) == "function" then consider(A.call(UnitNameUnmodified, unit)) end
     if type(UnitName) == "function" then consider(A.call(UnitName, unit)) end
     if type(UnitFullName) == "function" then consider(A.call(UnitFullName, unit)) end
+    if type(GetUnitName) == "function" then
+        consider(A.call(GetUnitName, unit, false))
+        consider(A.call(GetUnitName, unit, true))
+    end
     if blocked or not best then return nil end
     return A.identity(best, realm)
 end

@@ -60,7 +60,7 @@ function A.print(msg)
 end
 
 -- Keep in sync with ## Version in ForeverVendetta.toc (fallback when metadata APIs are missing).
-A.VERSION = "0.1.40"
+A.VERSION = "0.1.41"
 
 function A.addonVersion()
     local name = "ForeverVendetta"
