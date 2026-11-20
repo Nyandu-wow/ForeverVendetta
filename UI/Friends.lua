@@ -71,18 +71,30 @@ function A.buildFriendsUI(ctx)
     UI.button(setup, "Add trusted friend", 12, 66, 290, addFriend, "primary")
     ui.friendName:SetScript("OnEnterPressed", addFriend)
     UI.text(setup, "From your friends list (fills the name only):", 12, 94, 290, "GameFontHighlightSmall", UI.INK_MUTED)
+    -- Scrollable picker: up to 12 First Last names; ~4 visible without scrolling.
+    local GAME_FRIEND_SLOTS = 12
+    local ROW_H = 22
+    local scroll = CreateFrame("ScrollFrame", nil, setup, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 12, -112)
+    scroll:SetSize(268, 96)
+    local child = CreateFrame("Frame", nil, scroll)
+    child:SetSize(268, GAME_FRIEND_SLOTS * ROW_H)
+    scroll:SetScrollChild(child)
+    ui.gameFriendScroll = scroll
+    ui.gameFriendChild = child
     ui.gameFriendButtons = {}
-    for i = 1, 4 do
-        local b = UI.button(setup, "", 12, 112 + (i - 1) * 24, 290, function(self)
+    for i = 1, GAME_FRIEND_SLOTS do
+        local b = UI.button(child, "", 0, (i - 1) * ROW_H, 268, function(self)
             if not self.friendName then return end
             ui.friendName:SetText(self.friendName)
             ui.friendName:SetFocus()
             ctx.feedback("Name filled. Click Add trusted friend — they must still add you.")
         end)
+        b:SetHeight(ROW_H - 2)
         b:Hide()
         ui.gameFriendButtons[i] = b
     end
-    ui.gameFriendEmpty = UI.text(setup, "No readable First Last names on your friends list.", 12, 116, 290, "GameFontHighlightSmall", UI.INK_MUTED)
+    ui.gameFriendEmpty = UI.text(setup, "No readable First Last names on your friends list.", 12, 140, 290, "GameFontHighlightSmall", UI.INK_MUTED)
     ui.gameFriendEmpty:Hide()
     UI.text(setup, "They must add you too. Paste this to them:", 12, 214, 290, "GameFontHighlightSmall", UI.INK_MUTED)
     ui.trustCmd = UI.edit(setup, 12, 232, 290, 96)

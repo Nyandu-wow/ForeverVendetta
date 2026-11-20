@@ -505,15 +505,27 @@ function A.refresh()
         end
         if ctx.ui.gameFriendButtons and A.gameFriends then
             local picks = A.gameFriends()
+            local shown = 0
             for i, b in ipairs(ctx.ui.gameFriendButtons) do
                 local who = picks[i]
                 if who then
                     b.friendName = who.name
                     b:SetText(UI.shorten(who.name, 28))
                     b:Show()
+                    shown = shown + 1
                 else
                     b.friendName = nil
                     b:Hide()
+                end
+            end
+            if ctx.ui.gameFriendChild then
+                local rowH = 22
+                ctx.ui.gameFriendChild:SetHeight(math.max(96, shown * rowH))
+            end
+            if ctx.ui.gameFriendScroll then
+                ctx.ui.gameFriendScroll:SetShown(#picks > 0)
+                if ctx.ui.gameFriendScroll.SetVerticalScroll then
+                    ctx.ui.gameFriendScroll:SetVerticalScroll(0)
                 end
             end
             if ctx.ui.gameFriendEmpty then ctx.ui.gameFriendEmpty:SetShown(#picks == 0) end

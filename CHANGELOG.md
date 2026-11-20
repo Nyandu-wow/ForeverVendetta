@@ -1,5 +1,9 @@
 # Forever Vendetta
 
+## 0.1.43
+
+- Friends tab: game-friends name picker scrolls and can show up to 12 readable First Last names (was a hard cap of 4).
+
 ## 0.1.42
 
 - Forever identity is First Last. When realm APIs are empty/secret, fall back to `Forever` so init is not blocked — realm is only an internal storage key, not a player-facing requirement.

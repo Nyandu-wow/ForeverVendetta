@@ -895,6 +895,30 @@ test("Friends list picker fills a readable First Last name", function()
     eq(field:GetText(), "Bob Stone")
 end)
 
+test("Friends list picker can show more than four readable names", function()
+    local x = boot("Alice River", nil, function(env)
+        env.C_FriendList = {
+            GetNumFriends = function() return 8 end,
+            GetFriendInfoByIndex = function(i)
+                return { name = "Friend Number" .. i }
+            end,
+        }
+        env.C_BattleNet = { GetNumFriends = function() return 0 end }
+    end)
+    eq(#x.a.gameFriends(), 8)
+    x.a.toggleFriends()
+    local win = x.a._win
+    check(win and win.ui and win.ui.gameFriendButtons)
+    eq(#win.ui.gameFriendButtons, 12)
+    local visible = 0
+    for _, b in ipairs(win.ui.gameFriendButtons) do
+        if b.shown and b.friendName then visible = visible + 1 end
+    end
+    eq(visible, 8)
+    click(x, "Friend Number8")
+    eq(editors(x)[1]:GetText(), "Friend Number8")
+end)
+
 test("Hello whisper marks mutual share on the Friends tab",function()
     local x=boot("Alice River")
     x.a.trust("Bob Stone")
