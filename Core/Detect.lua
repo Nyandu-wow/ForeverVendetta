@@ -59,9 +59,17 @@ function A.playSound()
     A.call(PlaySound, file, "Master")
 end
 
-local STANCE_LABEL = { AVENGE = "Avenge", AVOID = "Avoid", WATCH = "Watch" }
+local function partyAnnounce(name, mode, where)
+    if A.store.settings.partyAnnounce ~= true then return end
+    if not A.flag(IsInGroup) then return end
+    local channel = A.flag(IsInRaid) and "RAID" or "PARTY"
+    -- Short only: no reason text in public/party chat.
+    local line = "Vendetta: " .. name .. " — " .. A.stanceLabel(mode) .. " [" .. where .. "]"
+    if #line > 240 then line = line:sub(1, 240) end
+    A.call(SendChatMessage, line, channel)
+end
 
-function A.alert(name, matches, test, face)
+function A.alert(name, matches, test, face, place)
     local first = matches[1]
     local mixed = false
     for i = 2, #matches do
@@ -70,35 +78,57 @@ function A.alert(name, matches, test, face)
     -- Chat stays short so screenshots and chat logs do not archive private reasons.
     -- The banner may show one author's reason, with that author's name attached.
     local prefix = test and "TEST - " or ""
+    local where = A.pvpPlaceLabel(place or (not test and A.pvpPlace()) or "world")
     local mode = nil
     local title
     if mixed then
-        title = prefix .. name .. " - " .. #matches .. " reports"
+        title = prefix .. name .. " - " .. #matches .. " reports [" .. where .. "]"
     else
         mode = first.report.mode
-        title = prefix .. name .. " - " .. (STANCE_LABEL[mode] or "Listed")
+        title = prefix .. name .. " - " .. A.stanceLabel(mode) .. " [" .. where .. "]"
     end
     local detail = first.report.note ~= "" and first.report.note or "Listed enemy"
     detail = detail .. " (" .. A.personName(first.owner) .. ")"
     if #matches > 1 then detail = detail .. " + " .. (#matches - 1) .. " more" end
     A.print(title)
     if A.store.settings.sound then A.playSound() end
-    if A.store.settings.banner and A.showBanner then A.showBanner(title, detail, test, mode, face) end
+    if A.store.settings.banner and A.showBanner then
+        A.showBanner(title, detail, test, mode, face, not test and name or nil)
+    end
+    if not test then partyAnnounce(name, mode or first.report.mode, where) end
 end
 
 function A.detect(unit)
     if not A.ready then return end
-    if not A.store.settings.instances and A.flag(IsInInstance) then return end
-    if not A.flag(UnitIsPlayer, unit) or not A.flag(UnitIsEnemy, "player", unit) then return end
+    if not A.flag(UnitIsPlayer, unit) or not A.flag(UnitIsEnemy, "player", unit) then
+        if A.clearPlateBadge then A.clearPlateBadge(unit) end
+        return
+    end
     local who = A.unitName(unit)
-    if not who then return end
+    if not who then
+        if A.clearPlateBadge then A.clearPlateBadge(unit) end
+        return
+    end
     A.rememberFace(unit, who.key)
-    local matches = A.match(who.key)
+    local placeFilter, here = nil, "world"
+    if A.alertPlaceFilter then
+        placeFilter, here = A.alertPlaceFilter()
+    else
+        here = A.pvpPlace and A.pvpPlace() or "world"
+        if here == "battleground" then placeFilter = "battleground"
+        elseif here == "world" then placeFilter = "world" end
+    end
+    local matches = A.match(who.key, placeFilter)
+    if A.refreshPlateBadge then A.refreshPlateBadge(unit, who, #matches > 0) end
+    -- Badge updates even when alerts are off for this place; alerts stay gated.
+    if A.alertsAllowedHere and not A.alertsAllowedHere() then return end
+    if not A.alertsAllowedHere and not A.store.settings.instances and A.flag(IsInInstance) then return end
     if #matches == 0 then return end
     local now = A.clock()
     if not now then return end
-    A.lastSeen[who.key] = now
+    if A.recordSighting then A.recordSighting(who.key, placeFilter or here) end
+    if A.isIgnored and A.isIgnored(who.key) then return end
     if A.lastAlert[who.key] and now - A.lastAlert[who.key] < A.store.settings.cooldown then return end
     A.lastAlert[who.key] = now
-    A.alert(who.name, matches, nil, A.faceFor(who.key))
+    A.alert(who.name, matches, nil, A.faceFor(who.key), here)
 end

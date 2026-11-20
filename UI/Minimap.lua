@@ -119,14 +119,7 @@ function A.buildMinimap()
             A.toggle()
         end
     end)
-    button:SetScript("OnDragStart", function(self)
-        self.dragging = true
-        if GameTooltip then GameTooltip:Hide() end
-    end)
-    button:SetScript("OnDragStop", function(self)
-        self.dragging = false
-    end)
-    button:SetScript("OnUpdate", function(self)
+    local function dragUpdate(self)
         if not self.dragging or type(Minimap) ~= "table" then return end
         local mx, my = Minimap:GetCenter()
         local cx, cy = GetCursorPosition()
@@ -140,6 +133,15 @@ function A.buildMinimap()
             A.store.settings.minimapAngle = deg
         end
         place(self)
+    end
+    button:SetScript("OnDragStart", function(self)
+        self.dragging = true
+        if GameTooltip then GameTooltip:Hide() end
+        self:SetScript("OnUpdate", dragUpdate)
+    end)
+    button:SetScript("OnDragStop", function(self)
+        self.dragging = false
+        self:SetScript("OnUpdate", nil)
     end)
 
     A.refreshMinimap()

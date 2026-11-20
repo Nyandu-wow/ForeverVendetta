@@ -2,11 +2,78 @@ local _, A = ...
 local queue, queued, lastRequest, lastHello, lastSnapshot = {}, {}, {}, {}, {}
 local elapsed = 0
 
+local function stampNow()
+    local stamp = A.call(time)
+    return A.plain(stamp, "number") and stamp or nil
+end
+
+local function markHeard(key)
+    if not A.plain(key, "string") then return end
+    local stamp = stampNow()
+    if not stamp then return end
+    A.store.lastHeard = A.store.lastHeard or {}
+    A.store.lastHeard[key] = stamp
+end
+
+local function markSent(key)
+    if not A.plain(key, "string") then return end
+    local stamp = stampNow()
+    if not stamp then return end
+    A.store.lastSent = A.store.lastSent or {}
+    A.store.lastSent[key] = stamp
+end
+
+-- A whisper from this friend means sharing is mutual (or was when they sent).
+-- No reply yet may mean offline, not mutual, or messaging blocked — never claim "online".
+function A.friendStatus(peer)
+    if type(peer) ~= "table" or not A.plain(peer.key, "string") then return "Unknown friend." end
+    local n = 0
+    for _, r in pairs(A.store.reports[peer.key] or {}) do
+        if not r.deleted then n = n + 1 end
+    end
+    local reports = n .. (n == 1 and " active report" or " active reports")
+    local heard = A.store.lastHeard and A.store.lastHeard[peer.key]
+    if heard then
+        local when = A.call(date, "%d %b %H:%M", heard)
+        if A.plain(when, "string") then
+            return "Sharing works · " .. reports .. " · Heard " .. when
+        end
+        return "Sharing works · " .. reports
+    end
+    return "No reply yet · they must add you · both online"
+end
+
+function A.syncStatus()
+    local pending = A.pendingCount()
+    if A.plain(A.lastSendError, "string") and A.lastSendError ~= "" then return A.lastSendError end
+    if pending > 0 then
+        return pending .. (pending == 1 and " message queued. " or " messages queued. ")
+            .. "Both characters need to be online."
+    end
+    if A.count(A.store.friends) == 0 then
+        return "Add a trusted friend to start sharing."
+    end
+    local newest
+    for _, stamp in pairs(A.store.lastSent or {}) do
+        if A.plain(stamp, "number") and (not newest or stamp > newest) then newest = stamp end
+    end
+    if newest then
+        local when = A.call(date, "%d %b %H:%M", newest)
+        if A.plain(when, "string") then
+            return "Queue clear. Last outbound whisper " .. when .. "."
+        end
+    end
+    return "Queue clear. Sync still needs both characters online together."
+end
+
 function A.wire(r)
     -- Withdrawn reports still sync identity + revision, but reasons are not resent.
+    -- place is world|battleground. Older clients ignore a trailing field they do not parse
+    -- only if we keep a compatible pattern — receivers accept with or without place.
     local note = r.deleted and "" or r.note
+    local place = A.placeOrWorld(r.place)
     return table.concat({ "1", "E", tostring(r.rev), r.deleted and "1" or "0",
-        r.mode, r.name, r.realm, note }, "|")
+        r.mode, r.name, r.realm, note, place }, "|")
 end
 
 local function digest(bucket)
@@ -67,6 +134,7 @@ function A.receive(prefix, text, channel, sender)
     local now = A.clock()
     local hash = text:match("^1|H|(%d+)$")
     if hash then
+        markHeard(who.key)
         if digest(A.store.reports[who.key]) ~= hash and (not now or not lastRequest[who.key] or now - lastRequest[who.key] >= 30) then
             if now then lastRequest[who.key] = now end
             enqueue(peer, "1|Q")
@@ -76,24 +144,34 @@ function A.receive(prefix, text, channel, sender)
             if now then lastHello[who.key] = now end
             enqueue(peer, "1|H|" .. digest(A.store.reports[A.me.key]))
         end
+        if A.refresh then A.refresh() end
         return
     end
     if text == "1|Q" then
+        markHeard(who.key)
         if now and lastSnapshot[who.key] and now - lastSnapshot[who.key] < 60 then return end
         if now then lastSnapshot[who.key] = now end
         for _, r in pairs(A.store.reports[A.me.key]) do enqueue(peer, A.wire(r)) end
+        if A.refresh then A.refresh() end
         return
     end
-    local rev, deleted, mode, name, realm, note = text:match("^1|E|(%d+)|([01])|([^|]+)|([^|]+)|([^|]+)|([^|]*)$")
+    local rev, deleted, mode, name, realm, note, place = text:match("^1|E|(%d+)|([01])|([^|]+)|([^|]+)|([^|]+)|([^|]*)|([^|]*)$")
+    if not rev then
+        rev, deleted, mode, name, realm, note = text:match("^1|E|(%d+)|([01])|([^|]+)|([^|]+)|([^|]+)|([^|]*)$")
+        place = "world"
+    end
     if not rev then return end
     -- Re-sanitize every field. A withdrawn packet never carries a reason.
     name, realm, note = A.text(name, 64), A.text(realm, 48), A.text(note or "", 96)
     if not name or not realm or not note or not A.modes[mode] then return end
     if deleted == "1" then note = "" end
-    local r = { rev = tonumber(rev), deleted = deleted == "1", mode = mode, name = name, realm = realm, note = note }
+    place = A.normalizePlace(place)
+    if not place then return end
+    local r = { rev = tonumber(rev), deleted = deleted == "1", mode = mode, name = name, realm = realm, note = note, place = place }
+    markHeard(who.key)
     if A.merge(who.key, r) then
-        local stamp = A.call(time)
-        if A.plain(stamp, "number") then
+        local stamp = stampNow()
+        if stamp then
             A.store.lastReceived = A.store.lastReceived or {}
             A.store.lastReceived[who.key] = stamp
         end
@@ -123,7 +201,12 @@ function A.pump(dt)
         (Enum and Enum.SendAddonMessageResult and result == Enum.SendAddonMessageResult.Success))
     item.attempts = item.attempts + 1
     if success or item.attempts >= 3 then
-        if success then A.lastSendError = nil else A.lastSendError = "Message deferred; next sync will retry." end
+        if success then
+            A.lastSendError = nil
+            markSent(item.peer.key)
+        else
+            A.lastSendError = "Message deferred; next sync will retry."
+        end
         queued[item.id] = nil
         table.remove(queue, 1)
     end

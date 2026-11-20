@@ -12,5 +12,9 @@ ignore:
   - tests
   - dist
   - .tools
+  - .cache
   - media
+  - node_modules
+  - package.json
+  - package-lock.json
   - "*.zip"

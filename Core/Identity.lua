@@ -95,7 +95,14 @@ end
 
 -- Forever full names are unique in the region. Match the name even when two clients'
 -- realm strings differ (ruleset label versus an internal shard name).
+-- Place-scoped slots use "|p:world" / "|p:battleground"; strip that first.
 function A.enemyName(key)
     if not A.plain(key, "string") then return nil end
+    if A.splitSlot then
+        local enemyKey = A.splitSlot(key)
+        key = enemyKey or key
+    else
+        key = key:match("^(.-)|p:") or key
+    end
     return (key:match("^(.*)%-[^%-]+$")) or key
 end

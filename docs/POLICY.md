@@ -39,8 +39,9 @@ References:
 - Trust is explicit. Battle.net friends are not auto-added.
 - Sharing uses WoW addon whispers only. No Internet, companion, account, or cloud database.
 - Alerts fire only for enemy players the client already exposes as nameplate, target, focus, or mouseover.
-- No stealth reveal, zone radar, combat-log hunting, auto-target, auto-attack, or kill counting.
-- Instance alerts default off.
+- No stealth reveal, zone radar, combat-log hunting, auto-target, or auto-attack.
+- Local D/K tallies stay on this client only and are never whispered.
+- Arena alerts default off; dungeon/raid alerts never fire.
 - Reports are opinions from trusted friends, not a verified threat score.
 
 ## Player responsibility

@@ -1,227 +1,87 @@
 local _, A = ...
 local unpack = unpack or table.unpack
+local UI = A.UI
+
+local ctx = {
+    panel = nil,
+    pages = {},
+    nav = {},
+    ui = {},
+    rows = {},
+    friendRows = {},
+    filters = {},
+    stanceButtons = {},
+    historyBlocks = {},
+    attackerButtons = {},
+    view = "world",
+    page = 1,
+    friendPage = 1,
+    filter = "ALL",
+    mode = "AVENGE",
+    selected = nil,
+    selectedRealm = nil,
+    filling = nil,
+    armedFriend = nil,
+    armedWithdraw = nil,
+}
+A._win = ctx
+
+function A.listPlace()
+    return A.tabPlace(ctx.view)
+end
+
+local function onList()
+    return ctx.view == "world" or ctx.view == "battlegrounds"
+end
+
 -- One charcoal ledger inside the normal WoW frame.
-local W, H, ROWS = 720, 480, 6
-local GOLD = { .82, .68, .38 }
-local INK, INK_MUTED, WHITE = { .90, .87, .80 }, { .62, .58, .50 }, { .92, .90, .86 }
-local MUTED = INK_MUTED
-local STONE = { .07, .07, .08, 1 }
-local ROW = { .13, .12, .11, 1 }
-local ROW_ON = { .26, .15, .13, 1 }
-local BURGUNDY = { .62, .22, .18 }
-local CLASS_TEX = "Interface\\TargetingFrame\\UI-Classes-Circles"
-local RACE_TEX = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Races"
-local CLASS_COORDS = {
-    WARRIOR = { 0, .25, 0, .25 }, MAGE = { .25, .49609375, 0, .25 },
-    ROGUE = { .49609375, .7421875, 0, .25 }, DRUID = { .7421875, .98828125, 0, .25 },
-    HUNTER = { 0, .25, .25, .5 }, SHAMAN = { .25, .49609375, .25, .5 },
-    PRIEST = { .49609375, .7421875, .25, .5 }, WARLOCK = { .7421875, .98828125, .25, .5 },
-    PALADIN = { 0, .25, .5, .75 }, DEATHKNIGHT = { .25, .49609375, .5, .75 },
-}
-local RACE_COORDS = {
-    HUMAN_MALE = { 0, .125, 0, .25 }, DWARF_MALE = { .125, .25, 0, .25 },
-    GNOME_MALE = { .25, .375, 0, .25 }, NIGHTELF_MALE = { .375, .5, 0, .25 },
-    TAUREN_MALE = { .5, .625, 0, .25 }, SCOURGE_MALE = { .625, .75, 0, .25 },
-    TROLL_MALE = { .75, .875, 0, .25 }, ORC_MALE = { .875, 1, 0, .25 },
-    HUMAN_FEMALE = { 0, .125, .25, .5 }, DWARF_FEMALE = { .125, .25, .25, .5 },
-    GNOME_FEMALE = { .25, .375, .25, .5 }, NIGHTELF_FEMALE = { .375, .5, .25, .5 },
-    TAUREN_FEMALE = { .5, .625, .25, .5 }, SCOURGE_FEMALE = { .625, .75, .25, .5 },
-    TROLL_FEMALE = { .75, .875, .25, .5 }, ORC_FEMALE = { .875, 1, .25, .5 },
-}
-
-local function paintFace(classTex, raceTex, face)
-    face = face or {}
-    local classCoords = CLASS_COORDS[face.class]
-    if classTex then
-        if classCoords and classTex.SetTexture then
-            classTex:SetTexture(CLASS_TEX)
-            classTex:SetTexCoord(classCoords[1], classCoords[2], classCoords[3], classCoords[4])
-            classTex:Show()
-        elseif classTex.Hide then
-            classTex:Hide()
-        end
-    end
-    local sex = face.sex == 3 and "FEMALE" or "MALE"
-    local raceCoords = face.race and RACE_COORDS[face.race .. "_" .. sex]
-    if raceTex then
-        if raceCoords and raceTex.SetTexture then
-            raceTex:SetTexture(RACE_TEX)
-            raceTex:SetTexCoord(raceCoords[1], raceCoords[2], raceCoords[3], raceCoords[4])
-            raceTex:Show()
-        elseif raceTex.Hide then
-            raceTex:Hide()
-        end
+ctx.feedback = function(msg, bad)
+    if ctx.ui.feedback then
+        ctx.ui.feedback:SetTextColor(unpack(bad and UI.STANCES[1].color or UI.GOLD))
+        ctx.ui.feedback:SetText(msg)
     end
 end
 
-local STANCES = {
-    { id = "AVENGE", label = "Avenge", color = { 1, .40, .32 }, hint = "You want another fight with this player." },
-    { id = "AVOID", label = "Avoid", color = { 1, .73, .30 }, hint = "Warn your friends to give this player space." },
-    { id = "WATCH", label = "Watch", color = { .36, .77, .94 }, hint = "Keep an eye on this player." },
-}
-local panel, banner, pages, nav, ui = nil, nil, {}, {}, {}
-local rows, friendRows, filters, stanceButtons, historyBlocks = {}, {}, {}, {}, {}
-local view, page, friendPage, filter, mode = "enemies", 1, 1, "ALL", "AVENGE"
-local selected, selectedRealm, filling, armedFriend, armedWithdraw
-local selectEnemy, refreshEditor
-
-local function hexColor(color)
-    return string.format("|cff%02x%02x%02x",
-        math.floor((color[1] or 1) * 255 + .5),
-        math.floor((color[2] or 1) * 255 + .5),
-        math.floor((color[3] or 1) * 255 + .5))
-end
-
-local function text(parent, value, x, y, width, font, color)
-    local f = parent:CreateFontString(nil, "OVERLAY", font or "GameFontHighlight")
-    f:SetPoint("TOPLEFT", x, -y)
-    f:SetWidth(width)
-    f:SetJustifyH("LEFT")
-    f:SetJustifyV("TOP")
-    f:SetTextColor(unpack(color or INK))
-    f:SetText(value)
-    return f
-end
-
-local function rect(parent, x, y, w, h, color, layer)
-    local t = parent:CreateTexture(nil, layer or "BACKGROUND")
-    t:SetPoint("TOPLEFT", x, -y)
-    t:SetSize(w, h)
-    t:SetColorTexture(unpack(color))
-    return t
-end
-
-local function box(parent, x, y, w, h)
-    local f = CreateFrame("Frame", nil, parent)
-    f:SetPoint("TOPLEFT", x, -y)
-    f:SetSize(w, h)
-    return f
-end
-
-local BUTTON_FACE = {
-    quiet = { .16, .15, .14, 1 },
-    primary = { .22, .17, .11, 1 },
-    danger = { .28, .12, .11, 1 },
-}
-local BUTTON_INK = {
-    quiet = INK,
-    primary = GOLD,
-    danger = { .92, .74, .68 },
-}
-
-local function button(parent, value, x, y, w, callback, role)
-    role = role or "quiet"
-    local b = CreateFrame("Button", nil, parent)
-    b:SetPoint("TOPLEFT", x, -y)
-    b:SetSize(w, 22)
-    b.role = role
-    b.bg = b:CreateTexture(nil, "BACKGROUND")
-    b.bg:SetAllPoints()
-    b.bg:SetColorTexture(unpack(BUTTON_FACE[role]))
-    b.edge = b:CreateTexture(nil, "BORDER")
-    b.edge:SetPoint("BOTTOMLEFT", 0, 0)
-    b.edge:SetPoint("BOTTOMRIGHT", 0, 0)
-    b.edge:SetHeight(1)
-    b.edge:SetColorTexture(unpack(role == "danger" and BURGUNDY or { .38, .32, .22, .8 }))
-    local label = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    label:SetPoint("CENTER", 0, 1)
-    b:SetFontString(label)
-    b:SetText(value)
-    label:SetTextColor(unpack(BUTTON_INK[role]))
-    b:SetScript("OnClick", callback)
-    b:SetScript("OnEnable", function(self) self:SetAlpha(1) end)
-    b:SetScript("OnDisable", function(self) self:SetAlpha(.45) end)
-    return b
-end
-
-local function tip(frame, title, body)
-    frame:SetScript("OnEnter", function(self)
-        if not GameTooltip then return end
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(title, unpack(GOLD))
-        GameTooltip:AddLine(body, .9, .9, .9, true)
-        GameTooltip:Show()
-    end)
-    frame:SetScript("OnLeave", function()
-        if GameTooltip then GameTooltip:Hide() end
-    end)
-end
-
-local function edit(parent, x, y, w, max, multi)
-    local h = multi and 48 or 26
-    local e = CreateFrame("EditBox", nil, parent)
-    e:SetPoint("TOPLEFT", x, -y)
-    e:SetSize(w, h)
-    e:SetFontObject("GameFontHighlight")
-    e:SetTextInsets(8, 8, 4, 4)
-    e:SetAutoFocus(false)
-    e:SetMaxBytes(max)
-    e:SetMultiLine(multi == true)
-    e:SetTextColor(unpack(INK))
-    rect(e, 0, 0, w, h, { .05, .05, .06, 1 })
-    local line = rect(e, 0, h - 1, w, 1, { .38, .32, .22, .85 })
-    e:SetScript("OnEditFocusGained", function() line:SetColorTexture(unpack(GOLD)) end)
-    e:SetScript("OnEditFocusLost", function() line:SetColorTexture(.38, .32, .22, .85) end)
-    e:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-    e:SetText("")
-    return e
-end
-
-local function shorten(value, limit)
-    if not A.plain(value, "string") then return "" end
-    if #value <= limit then return value end
-    return value:sub(1, limit - 3) .. "..."
-end
-
-local function placeholder(e, value)
-    local hint = text(e, value, 8, 6, 285, "GameFontDisable", INK_MUTED)
-    local previous = e:GetScript("OnTextChanged")
-    e:SetScript("OnTextChanged", function(self, user)
-        hint:SetShown(self:GetText() == "")
-        if previous then previous(self, user) end
-    end)
-end
-
-local function fit(frame, w, h)
-    frame:SetClampedToScreen(true)
-    local scale = 1
-    local height = A.call(UIParent and UIParent.GetHeight, UIParent)
-    local width = A.call(UIParent and UIParent.GetWidth, UIParent)
-    if A.plain(height, "number") and height > 160 then scale = math.min(scale, (height - 40) / h) end
-    if A.plain(width, "number") and width > 160 then scale = math.min(scale, (width - 40) / w) end
-    frame:SetScale(scale)
-end
-
-local function feedback(msg, bad)
-    if ui.feedback then
-        ui.feedback:SetTextColor(unpack(bad and STANCES[1].color or GOLD))
-        ui.feedback:SetText(msg)
+ctx.switch = function(to)
+    ctx.feedback("")
+    ctx.view = to
+    ctx.armedFriend, ctx.armedWithdraw = nil, nil
+    local showList = to == "world" or to == "battlegrounds"
+    for id, p in pairs(ctx.pages) do
+        if id == "enemies" then p:SetShown(ctx.panel:IsShown() and showList)
+        else p:SetShown(ctx.panel:IsShown() and id == ctx.view) end
     end
-end
-
-local function switch(to)
-    feedback("")
-    view = to
-    armedFriend, armedWithdraw = nil, nil
-    for id, p in pairs(pages) do p:SetShown(panel:IsShown() and id == view) end
     A.refresh()
 end
 
 -- Group presentation only. Each author's stored report remains independent.
 local function groups()
     local list, lookup = {}, {}
-    for _, entry in ipairs(A.entries()) do
+    local place = A.listPlace()
+    for _, entry in ipairs(A.entries(place)) do
+        local enemyKey = A.splitSlot(entry.key)
         local key = A.enemyName(entry.key)
         local g = lookup[key]
         if not g then
-            g = { key = key, name = entry.report.name, reports = {}, modes = {} }
+            g = { key = key, enemyKey = enemyKey, name = entry.report.name, reports = {}, modes = {}, place = place }
             lookup[key] = g
             list[#list + 1] = g
         end
         g.reports[#g.reports + 1] = entry
         g.modes[entry.report.mode] = true
     end
-    table.sort(list, function(a, b) return a.key < b.key end)
+    local function seenTs(g)
+        local enemyKey = g.enemyKey
+        if not enemyKey and g.reports and g.reports[1] then enemyKey = A.splitSlot(g.reports[1].key) end
+        if not enemyKey or not A.sightingFor then return 0 end
+        local seen = A.sightingFor(enemyKey, g.place or place)
+        return seen and (tonumber(seen.ts) or 0) or 0
+    end
+    table.sort(list, function(a, b)
+        local sa, sb = seenTs(a), seenTs(b)
+        if sa ~= sb then return sa > sb end
+        return a.key < b.key
+    end)
     return list, lookup
 end
 
@@ -234,74 +94,95 @@ local function ownReport(g)
 end
 
 local function stanceInfo(id)
-    for _, s in ipairs(STANCES) do
+    for _, s in ipairs(UI.STANCES) do
         if s.id == id then return s end
     end
-    return STANCES[1]
+    return UI.STANCES[1]
+end
+
+local function scoreText(g)
+    if not (A.scoreFor and g) then return "" end
+    local enemyKey = g.enemyKey
+    if not enemyKey and g.reports and g.reports[1] then enemyKey = A.splitSlot(g.reports[1].key) end
+    if not enemyKey then return "" end
+    local score = A.scoreFor(enemyKey, g.place or A.listPlace())
+    if score.deaths == 0 and score.kills == 0 then return "" end
+    return " · D" .. score.deaths .. "/K" .. score.kills
 end
 
 local function reportSummary(g)
     local n = #g.reports
     local own = ownReport(g)
+    local score = scoreText(g)
+    local base
     if n == 1 then
         local entry = g.reports[1]
-        if entry.owner == A.me.key then return "1 report · yours" end
-        return "1 report · " .. shorten(A.personName(entry.owner), 18)
+        if entry.owner == A.me.key then base = "1 report · yours" .. score
+        else base = "1 report · " .. UI.shorten(A.personName(entry.owner), 14) .. score end
+    elseif own then
+        base = n .. " reports · yours + friends" .. score
+    else
+        base = n .. " reports · friends" .. score
     end
-    if own then return n .. " reports · yours + friends" end
-    return n .. " reports · friends"
+    local enemyKey = g.enemyKey
+    if not enemyKey and g.reports and g.reports[1] then enemyKey = A.splitSlot(g.reports[1].key) end
+    local seen = enemyKey and A.sightingFor and A.sightingFor(enemyKey, g.place or A.listPlace())
+    local short = A.formatSeenShort and A.formatSeenShort(seen) or ""
+    if short ~= "" then base = base .. " · " .. short end
+    if A.isIgnored and enemyKey and A.isIgnored(enemyKey) then base = base .. " · muted" end
+    return base
 end
 
 local function ensureHistoryBlock(index)
-    local block = historyBlocks[index]
+    local block = ctx.historyBlocks[index]
     if block then return block end
-    block = CreateFrame("Frame", nil, ui.historyChild)
+    block = CreateFrame("Frame", nil, ctx.ui.historyChild)
     block:SetSize(280, 50)
-    block.bg = rect(block, 0, 0, 280, 50, ROW)
-    block.stripe = rect(block, 0, 0, 3, 50, STANCES[1].color, "ARTWORK")
-    block.who = text(block, "", 10, 5, 260, "GameFontNormalSmall", GOLD)
-    block.body = text(block, "", 10, 22, 260, "GameFontHighlightSmall", INK)
+    block.bg = UI.rect(block, 0, 0, 280, 50, UI.ROW)
+    block.stripe = UI.rect(block, 0, 0, 3, 50, UI.STANCES[1].color, "ARTWORK")
+    block.who = UI.text(block, "", 10, 5, 260, "GameFontNormalSmall", UI.GOLD)
+    block.body = UI.text(block, "", 10, 22, 260, "GameFontHighlightSmall", UI.INK)
     block.who:SetWordWrap(false)
     block.body:SetWordWrap(true)
-    historyBlocks[index] = block
+    ctx.historyBlocks[index] = block
     return block
 end
 
 local function newReport()
-    selected, selectedRealm, armedWithdraw = nil, nil, nil
-    filling = true
-    ui.name:SetText("")
-    ui.note:SetText("")
-    filling = false
-    mode = "AVENGE"
-    ui.historyScroll:SetVerticalScroll(0)
-    feedback("")
+    ctx.selected, ctx.selectedRealm, ctx.armedWithdraw = nil, nil, nil
+    ctx.filling = true
+    ctx.ui.name:SetText("")
+    ctx.ui.note:SetText("")
+    ctx.filling = false
+    ctx.mode = "AVENGE"
+    ctx.ui.historyScroll:SetVerticalScroll(0)
+    ctx.feedback("")
     A.refresh()
-    ui.name:SetFocus()
+    ctx.ui.name:SetFocus()
 end
 
 selectEnemy = function(g)
-    selected, armedWithdraw = g.key, nil
+    ctx.selected, ctx.armedWithdraw = g.key, nil
     local own = ownReport(g)
-    selectedRealm = own and own.realm or A.realm()
-    filling = true
-    ui.name:SetText(g.name)
+    ctx.selectedRealm = own and own.realm or A.realm()
+    ctx.filling = true
+    ctx.ui.name:SetText(g.name)
     -- Never silently copy another author's reason into your report.
-    ui.note:SetText(own and own.note or "")
-    filling = false
-    mode = own and own.mode or "AVENGE"
-    ui.historyScroll:SetVerticalScroll(0)
-    feedback(own and "Editing your report. Your friends' reports stay separate." or "Read your friends' reports below, then add your own if you wish.")
+    ctx.ui.note:SetText(own and own.note or "")
+    ctx.filling = false
+    ctx.mode = own and own.mode or "AVENGE"
+    ctx.ui.historyScroll:SetVerticalScroll(0)
+    ctx.feedback(own and "Editing your report. Your friends' reports stay separate." or "Read your friends' reports below, then add your own if you wish.")
     A.refresh()
 end
 
 local function showInList()
-    filter = "ALL"
-    ui.search:SetText("")
+    ctx.filter = "ALL"
+    ctx.ui.search:SetText("")
     local list = groups()
     for i, enemy in ipairs(list) do
-        if enemy.key == selected then
-            page = math.ceil(i / ROWS)
+        if enemy.key == ctx.selected then
+            ctx.page = math.ceil(i / UI.ROWS)
             break
         end
     end
@@ -309,82 +190,106 @@ local function showInList()
 end
 
 local function saveReport()
-    local who = A.sender(ui.name:GetText())
+    local who = A.sender(ctx.ui.name:GetText())
     if not who or not who.name:find("%s") then
-        feedback("Enter a first name and surname, or use Add target.", true)
-        ui.name:SetFocus()
+        ctx.feedback("Enter a first name and surname, or use Add target.", true)
+        ctx.ui.name:SetFocus()
         return
     end
-    local ok, err = A.report(who.name, ui.note:GetText(), mode, false, selectedRealm)
+    local ok, err = A.report(who.name, ctx.ui.note:GetText(), ctx.mode, false, ctx.selectedRealm, A.listPlace())
     if not ok then
-        feedback(err or "Could not save that report.", true)
+        ctx.feedback(err or "Could not save that report.", true)
         return
     end
-    selected, selectedRealm = who.name:lower(), selectedRealm or who.realm
-    armedWithdraw = nil
-    ui.name:SetText(who.name)
-    ui.name:ClearFocus()
-    ui.note:ClearFocus()
-    feedback("Saved on this character.")
+    ctx.selected, ctx.selectedRealm = who.name:lower(), ctx.selectedRealm or who.realm
+    ctx.armedWithdraw = nil
+    ctx.ui.name:SetText(who.name)
+    ctx.ui.name:ClearFocus()
+    ctx.ui.note:ClearFocus()
+    ctx.feedback("Saved on this character.")
     showInList()
 end
 
-local function useTarget()
-    if not A.flag(UnitIsPlayer, "target") or not A.flag(UnitIsEnemy, "player", "target") then
-        feedback("Select an enemy player in the game, then click Add target.", true)
-        return
-    end
-    local who = A.unitName("target")
-    if not who then
-        feedback("That name is unavailable. Try outside combat or enter it yourself.", true)
-        return
-    end
-    if A.rememberFace then A.rememberFace("target", who.key) end
+function A.prepareEnemyDraft(who, note, draftMode, place)
+    if not who then return false, "No enemy identity." end
+    if not ctx.panel then ctx.build() end
+    local tab = A.normalizePlace(place or A.listPlace()) == "battleground" and "battlegrounds" or "world"
+    ctx.panel:Show()
+    ctx.switch(tab)
+    if A.rememberFace and A.flag(UnitExists, "target") then A.rememberFace("target", who.key) end
     local _, lookup = groups()
     if lookup[who.name:lower()] then
         selectEnemy(lookup[who.name:lower()])
     else
         newReport()
-        filling = true
-        ui.name:SetText(who.name)
-        filling = false
-        selectedRealm = who.realm
+        ctx.filling = true
+        ctx.ui.name:SetText(who.name)
+        ctx.filling = false
+        ctx.selectedRealm = who.realm
+        ctx.selected = who.name:lower()
     end
-    switch("enemies")
-    ui.note:SetFocus()
+    if A.plain(note, "string") and note ~= "" then
+        ctx.filling = true
+        ctx.ui.note:SetText(note)
+        ctx.filling = false
+    end
+    if A.plain(draftMode, "string") and A.modes[draftMode] then
+        ctx.mode = draftMode
+    end
+    ctx.ui.note:SetFocus()
+    A.refresh()
+    return true
+end
 
+local function useTarget()
+    if not A.flag(UnitIsPlayer, "target") or not A.flag(UnitIsEnemy, "player", "target") then
+        ctx.feedback("Select an enemy player in the game, then click Add target.", true)
+        return
+    end
+    local who = A.unitName("target")
+    if not who then
+        ctx.feedback("That name is unavailable. Try outside combat or enter it yourself.", true)
+        return
+    end
+    A.prepareEnemyDraft(who, nil, nil, A.listPlace())
 end
 
 refreshEditor = function(lookup)
-    local g = selected and lookup[selected]
+    local g = ctx.selected and lookup[ctx.selected]
     local own = ownReport(g)
-    local chosen = stanceInfo(mode)
-    ui.editorTitle:SetText(g and shorten(g.name, 28) or "Add your report")
-    paintFace(ui.editorClass, ui.editorRace, g and A.faceFor and A.faceFor(g.key))
-    if g then ui.name:Disable() else ui.name:Enable() end
-    ui.save:SetText(own and "Save changes" or "Save report")
-    ui.withdraw:SetEnabled(own ~= nil)
-    ui.withdraw:SetText(armedWithdraw and "Confirm removal" or "Withdraw mine")
-    for _, s in ipairs(STANCES) do
-        local on = mode == s.id
-        stanceButtons[s.id]:SetText((on and hexColor(s.color) or "") .. s.label .. (on and "|r" or ""))
-        stanceButtons[s.id].mark:SetShown(on)
-        if on then stanceButtons[s.id].mark:SetColorTexture(s.color[1], s.color[2], s.color[3], 1) end
+    local chosen = stanceInfo(ctx.mode)
+    ctx.ui.editorTitle:SetText(g and UI.shorten(g.name, 28) or "Add your report")
+    UI.paintFace(ctx.ui.editorClass, ctx.ui.editorRace, g and A.faceFor and A.faceFor(g.key))
+    if g then ctx.ui.name:Disable() else ctx.ui.name:Enable() end
+    ctx.ui.save:SetText(own and "Save changes" or "Save report")
+    ctx.ui.withdraw:SetEnabled(own ~= nil)
+    ctx.ui.withdraw:SetText(ctx.armedWithdraw and "Confirm removal" or "Withdraw")
+    if ctx.ui.mute then
+        local enemyKey = g and (g.enemyKey or (g.reports[1] and A.splitSlot(g.reports[1].key)))
+        local muted = enemyKey and A.isIgnored and A.isIgnored(enemyKey)
+        ctx.ui.mute:SetEnabled(g ~= nil)
+        ctx.ui.mute:SetText(muted and "Unmute" or "Mute alerts")
     end
-    ui.stanceHint:SetText(chosen.hint)
-    ui.stanceHint:SetTextColor(unpack(chosen.color))
+    for _, s in ipairs(UI.STANCES) do
+        local on = ctx.mode == s.id
+        ctx.stanceButtons[s.id]:SetText((on and UI.hexColor(s.color) or "") .. s.label .. (on and "|r" or ""))
+        ctx.stanceButtons[s.id].mark:SetShown(on)
+        if on then ctx.stanceButtons[s.id].mark:SetColorTexture(s.color[1], s.color[2], s.color[3], 1) end
+    end
+    ctx.ui.stanceHint:SetText(chosen.hint)
+    ctx.ui.stanceHint:SetTextColor(unpack(chosen.color))
 
-    ui.historyTitle:SetText(g and (#g.reports .. (#g.reports == 1 and " report on this enemy" or " reports on this enemy")) or "Reports from trusted friends")
+    ctx.ui.historyTitle:SetText(g and (#g.reports .. (#g.reports == 1 and " report on this enemy" or " reports on this enemy")) or "Reports from trusted friends")
     local y = 0
     if g and #g.reports > 0 then
-        ui.historyEmpty:Hide()
+        ctx.ui.historyEmpty:Hide()
         for i, entry in ipairs(g.reports) do
             local block = ensureHistoryBlock(i)
             local r = entry.report
             local s = stanceInfo(r.mode)
             local who = entry.owner == A.me.key and "You" or A.personName(entry.owner)
             local role = entry.owner == A.me.key and "yours" or "friend"
-            block.who:SetText(shorten(who .. " · " .. s.label .. " · " .. role, 42))
+            block.who:SetText(UI.shorten(who .. " · " .. s.label .. " · " .. role, 42))
             block.body:SetText(r.note ~= "" and r.note or "No reason provided.")
             block.stripe:SetColorTexture(s.color[1], s.color[2], s.color[3], 1)
             block:ClearAllPoints()
@@ -392,98 +297,144 @@ refreshEditor = function(lookup)
             block:Show()
             y = y + 54
         end
-        for i = #g.reports + 1, #historyBlocks do historyBlocks[i]:Hide() end
+        for i = #g.reports + 1, #ctx.historyBlocks do ctx.historyBlocks[i]:Hide() end
     else
-        for _, block in ipairs(historyBlocks) do block:Hide() end
-        ui.historyEmpty:Show()
-        ui.historyEmpty:SetText(g and "No active reports on this enemy." or "Select an enemy to read every report.\n\nYour reason stays separate from your friends' reasons.")
+        for _, block in ipairs(ctx.historyBlocks) do block:Hide() end
+        ctx.ui.historyEmpty:Show()
+        ctx.ui.historyEmpty:SetText(g and "No active reports on this enemy." or "Select an enemy to read every report.\n\nYour reason stays separate from your friends' reasons.")
     end
-    ui.historyChild:SetHeight(math.max(110, y > 0 and y or 110))
+    ctx.ui.historyChild:SetHeight(math.max(110, y > 0 and y or 110))
 end
 
-local function syncNote()
+ctx.syncNote = function()
+    if A.syncStatus then return A.syncStatus() end
     local pending = A.pendingCount()
     if A.plain(A.lastSendError, "string") and A.lastSendError ~= "" then return A.lastSendError end
     if pending > 0 then
-        return pending .. (pending == 1 and " message queued. " or " messages queued. ") .. "Both characters need to be online."
+        return pending .. (pending == 1 and " whisper queued. " or " whispers queued. ")
+            .. "Both characters need to be online."
     end
-    return "Reports catch up when both characters are online. No report yet means no time on that row."
+    return "Sync health: whispers catch up when both characters are online."
+end
+
+local function groupEnemyKey(g)
+    if not g then return nil end
+    if g.enemyKey then return g.enemyKey end
+    if g.reports and g.reports[1] then return A.splitSlot(g.reports[1].key) end
+    return nil
+end
+
+local function groupPassesFilter(g)
+    if ctx.filter == "ALL" then return true end
+    if ctx.filter == "AVENGE" or ctx.filter == "AVOID" or ctx.filter == "WATCH" then
+        return g.modes[ctx.filter] == true
+    end
+    local enemyKey = groupEnemyKey(g)
+    if ctx.filter == "UI.MUTED" then
+        return enemyKey and A.isIgnored and A.isIgnored(enemyKey) or false
+    end
+    if ctx.filter == "SEEN" then
+        if not enemyKey or not A.sightingFor then return false end
+        local seen = A.sightingFor(enemyKey, g.place or A.listPlace())
+        return seen ~= nil and (tonumber(seen.ts) or 0) > 0
+    end
+    return true
 end
 
 function A.refresh()
-    if not panel or not panel:IsShown() then return end
+    if not ctx.panel or not ctx.panel:IsShown() then return end
     if A.scanFaces then A.scanFaces() end
     local all, lookup = groups()
-    local filtered, query = {}, ui.search:GetText():lower()
+    local filtered, query = {}, ctx.ui.search:GetText():lower()
     for _, g in ipairs(all) do
         local haystack = g.name
         for _, e in ipairs(g.reports) do
             haystack = haystack .. " " .. e.report.note .. " " .. A.personName(e.owner)
         end
-        if (filter == "ALL" or g.modes[filter]) and haystack:lower():find(query, 1, true) then
+        if groupPassesFilter(g) and haystack:lower():find(query, 1, true) then
             filtered[#filtered + 1] = g
         end
     end
-    local count = math.max(1, math.ceil(#filtered / ROWS))
-    page = math.max(1, math.min(page, count))
-    if view == "friends" then
+    local count = math.max(1, math.ceil(#filtered / UI.ROWS))
+    ctx.page = math.max(1, math.min(ctx.page, count))
+    if ctx.view == "friends" then
         local friendsN = A.count(A.store.friends)
-        ui.heading:SetText("Trusted friends")
-        ui.summary:SetText(friendsN .. (friendsN == 1 and " character. " or " characters. ") .. "Both sides add each other.")
-    elseif view == "alerts" then
-        ui.heading:SetText("Warnings")
-        ui.summary:SetText("Nameplates, target, focus, and mouseover.")
+        ctx.ui.heading:SetText("Trusted friends")
+        ctx.ui.summary:SetText(friendsN .. (friendsN == 1 and " character. " or " characters. ") .. "Both sides add each other.")
+    elseif ctx.view == "alerts" then
+        ctx.ui.heading:SetText("Warnings")
+        ctx.ui.summary:SetText("Nameplates, target, focus, and mouseover.")
+    elseif ctx.view == "battlegrounds" then
+        ctx.ui.heading:SetText("Battlegrounds")
+        ctx.ui.summary:SetText(#all .. (#all == 1 and " BG enemy" or " BG enemies") .. " · local D/K")
     else
-        ui.heading:SetText("Enemy blacklist")
-        ui.summary:SetText(#all .. (#all == 1 and " enemy" or " enemies") .. " · " .. #A.entries() .. " reports")
+        ctx.ui.heading:SetText("World PvP")
+        ctx.ui.summary:SetText(#all .. (#all == 1 and " world enemy" or " world enemies") .. " · local D/K")
     end
-    local manyPages = #filtered > ROWS
-    ui.pagination:SetText(manyPages and ("Page " .. page .. " of " .. count) or "")
-    ui.pagination:SetShown(manyPages)
-    ui.prev:SetShown(manyPages)
-    ui.next:SetShown(manyPages)
-    ui.prev:SetEnabled(page > 1)
-    ui.next:SetEnabled(page < count)
-    if ui.addEnemy then ui.addEnemy:SetShown(view == "enemies") end
-    if ui.addTarget then ui.addTarget:SetShown(view == "enemies") end
-    ui.clearSearch:SetEnabled(query ~= "")
-    for id, b in pairs(filters) do
-        b.mark:SetShown(id == filter)
-        b:SetText((id == filter and "|cffffd159" or "") .. b.caption .. (id == filter and "|r" or ""))
+    local manyPages = #filtered > UI.ROWS
+    ctx.ui.pagination:SetText(manyPages and ("Page " .. ctx.page .. " of " .. count) or "")
+    ctx.ui.pagination:SetShown(manyPages)
+    ctx.ui.prev:SetShown(manyPages)
+    ctx.ui.next:SetShown(manyPages)
+    ctx.ui.prev:SetEnabled(ctx.page > 1)
+    ctx.ui.next:SetEnabled(ctx.page < count)
+    if ctx.ui.addEnemy then ctx.ui.addEnemy:SetShown(onList()) end
+    if ctx.ui.addTarget then ctx.ui.addTarget:SetShown(onList()) end
+    ctx.refreshAttackers()
+    ctx.ui.clearSearch:SetEnabled(query ~= "")
+    for id, b in pairs(ctx.filters) do
+        b.mark:SetShown(id == ctx.filter)
+        b:SetText((id == ctx.filter and "|cffffd159" or "") .. b.caption .. (id == ctx.filter and "|r" or ""))
     end
     local selectionVisible = false
-    for i, row in ipairs(rows) do
-        local g = filtered[(page - 1) * ROWS + i]
+    for i, row in ipairs(ctx.rows) do
+        local g = filtered[(ctx.page - 1) * UI.ROWS + i]
         row.group = g
         row:SetShown(g ~= nil)
         if g then
-            if selected == g.key then selectionVisible = true end
-            row.name:SetText(shorten(g.name, 24))
-            paintFace(row.classIcon, row.raceIcon, A.faceFor and A.faceFor(g.key))
+            if ctx.selected == g.key then selectionVisible = true end
+            row.name:SetText(UI.shorten(g.name, 24))
+            UI.paintFace(row.classIcon, row.raceIcon, A.faceFor and A.faceFor(g.key))
             local mixed = A.count(g.modes) > 1
             local s = stanceInfo(g.modes.AVOID and "AVOID" or (g.modes.AVENGE and "AVENGE" or "WATCH"))
             row.tag:SetText(mixed and "Mixed" or s.label)
-            local color = mixed and MUTED or s.color
+            local color = mixed and UI.MUTED or s.color
             row.tag:SetTextColor(unpack(color))
             row.stripe:SetColorTexture(color[1], color[2], color[3], 1)
             row.detail:SetText(reportSummary(g))
-            row.name:SetTextColor(unpack(INK))
-            row.detail:SetTextColor(unpack(INK_MUTED))
-            row.bg:SetColorTexture(unpack(selected == g.key and ROW_ON or ROW))
+            row.name:SetTextColor(unpack(UI.INK))
+            row.detail:SetTextColor(unpack(UI.INK_MUTED))
+            row.bg:SetColorTexture(unpack(ctx.selected == g.key and UI.ROW_ON or UI.ROW))
         end
     end
-    ui.empty:SetShown(#filtered == 0)
-    ui.emptyTitle:SetText(#all == 0 and "No enemies yet" or "No enemies match")
-    ui.emptyBody:SetText(#all == 0 and "Add target, or type a full name." or "Clear the search, or set the filter to All.")
-    ui.reveal:SetShown(lookup[selected] ~= nil and not selectionVisible)
+    ctx.ui.empty:SetShown(#filtered == 0)
+    ctx.ui.emptyTitle:SetText(#all == 0 and "No enemies yet" or "No enemies match")
+    local friendsN = A.count(A.store.friends)
+    if #all == 0 then
+        if friendsN == 0 then
+            ctx.ui.emptyBody:SetText("First: open Friends and exchange /fv trust with each other.\nThen Add target, or type a full name.")
+        else
+            ctx.ui.emptyBody:SetText("Add target, or type a full name.")
+        end
+    elseif ctx.filter == "UI.MUTED" then
+        ctx.ui.emptyBody:SetText("No muted enemies. Mute from the editor or the warning banner.")
+    elseif ctx.filter == "SEEN" then
+        ctx.ui.emptyBody:SetText("No sightings yet. Seen fills when a listed enemy is visible (saved locally).")
+    else
+        ctx.ui.emptyBody:SetText("Clear the search, or set the ctx.filter to All.")
+    end
+    if ctx.ui.emptyFriends then
+        ctx.ui.emptyFriends:SetShown(#all == 0 and friendsN == 0 and onList())
+    end
+    ctx.ui.reveal:SetShown(lookup[ctx.selected] ~= nil and not selectionVisible)
     refreshEditor(lookup)
-    for id, b in pairs(nav) do
-        local on = view == id
+    for id, b in pairs(ctx.nav) do
+        local on = ctx.view == id
         if type(b.mark) == "table" then b.mark:SetShown(on) end
         if b.classic and b.bg and b.bg.SetTexture then
             b.bg:SetTexture(on and "Interface\\PaperDollInfoFrame\\UI-Character-ActiveTab" or "Interface\\PaperDollInfoFrame\\UI-Character-InActiveTab")
         elseif b.bg then
-            b.bg:SetColorTexture(unpack(on and ROW_ON or BUTTON_FACE.quiet))
+            b.bg:SetColorTexture(unpack(on and UI.ROW_ON or UI.BUTTON_FACE.quiet))
         end
         b:SetText(b.caption)
     end
@@ -491,18 +442,18 @@ function A.refresh()
     for _, peer in pairs(A.store.friends) do friends[#friends + 1] = peer end
     table.sort(friends, function(a, b) return a.name < b.name end)
     local maxFriends = math.max(1, math.ceil(#friends / 7))
-    friendPage = math.max(1, math.min(friendPage, maxFriends))
+    ctx.friendPage = math.max(1, math.min(ctx.friendPage, maxFriends))
     local manyFriends = #friends > 7
-    ui.friendPagination:SetText(manyFriends and ("Page " .. friendPage .. " of " .. maxFriends) or "")
-    ui.friendPagination:SetShown(manyFriends)
-    ui.friendPrev:SetShown(manyFriends)
-    ui.friendNext:SetShown(manyFriends)
-    ui.sync:SetEnabled(#friends > 0)
-    ui.friendPrev:SetEnabled(friendPage > 1)
-    ui.friendNext:SetEnabled(friendPage < maxFriends)
-    ui.friendEmpty:SetShown(#friends == 0)
-    for i, row in ipairs(friendRows) do
-        local peer = friends[(friendPage - 1) * 7 + i]
+    ctx.ui.friendPagination:SetText(manyFriends and ("Page " .. ctx.friendPage .. " of " .. maxFriends) or "")
+    ctx.ui.friendPagination:SetShown(manyFriends)
+    ctx.ui.friendPrev:SetShown(manyFriends)
+    ctx.ui.friendNext:SetShown(manyFriends)
+    ctx.ui.sync:SetEnabled(#friends > 0)
+    ctx.ui.friendPrev:SetEnabled(ctx.friendPage > 1)
+    ctx.ui.friendNext:SetEnabled(ctx.friendPage < maxFriends)
+    ctx.ui.friendEmpty:SetShown(#friends == 0)
+    for i, row in ipairs(ctx.friendRows) do
+        local peer = friends[(ctx.friendPage - 1) * 7 + i]
         row.peer = peer
         row:SetShown(peer ~= nil)
         if peer then
@@ -510,66 +461,150 @@ function A.refresh()
             for _, r in pairs(A.store.reports[peer.key] or {}) do
                 if not r.deleted then n = n + 1 end
             end
-            row.name:SetText(shorten(peer.name, 28))
-            row.name:SetTextColor(unpack(INK))
-            local received = A.store.lastReceived and A.store.lastReceived[peer.key]
-            local stamp = received and A.call(date, "%d %b %H:%M", received)
-            local status = n .. (n == 1 and " active report" or " active reports")
-            if stamp then status = status .. " · Last report " .. stamp end
-            row.detail:SetText(shorten(status, 42))
-            row.detail:SetTextColor(unpack(INK_MUTED))
-            row.remove:SetText(armedFriend == peer.key and "Confirm" or "Remove")
+            row.name:SetText(UI.shorten(peer.name, 28))
+            row.name:SetTextColor(unpack(UI.INK))
+            local status = A.friendStatus and A.friendStatus(peer)
+            if not status then
+                local received = A.store.lastReceived and A.store.lastReceived[peer.key]
+                local stamp = received and A.call(date, "%d %b %H:%M", received)
+                status = n .. (n == 1 and " active report" or " active reports")
+                if stamp then status = status .. " · Last report " .. stamp end
+            end
+            row.detail:SetText(UI.shorten(status, 48))
+            local heard = A.store.lastHeard and A.store.lastHeard[peer.key]
+            row.detail:SetTextColor(unpack(heard and UI.GOLD or UI.INK_MUTED))
+            row.remove:SetText(ctx.armedFriend == peer.key and "Confirm remove" or "Remove")
         end
     end
-    for key, c in pairs(ui.checks) do c:SetChecked(A.store.settings[key] == true) end
+    for key, c in pairs(ctx.ui.checks) do c:SetChecked(A.store.settings[key] == true) end
     if A.refreshMinimap then A.refreshMinimap() end
-    if ui.soundButtons then
+    if ctx.ui.soundButtons then
         local current = A.soundById(A.store.settings.alertSound)
         current = current and current.id
-        for id, b in pairs(ui.soundButtons) do
+        for id, b in pairs(ctx.ui.soundButtons) do
             local on = id == current
             if type(b.mark) == "table" then b.mark:SetShown(on) end
-            b:SetText((on and hexColor(GOLD) or "") .. b.caption .. (on and "|r" or ""))
+            b:SetText((on and UI.hexColor(UI.GOLD) or "") .. b.caption .. (on and "|r" or ""))
         end
     end
-    ui.cooldownLabel:SetText(A.store.settings.cooldown .. " seconds")
-    if ui.cooldown:GetValue() ~= A.store.settings.cooldown then ui.cooldown:SetValue(A.store.settings.cooldown) end
-    if view == "alerts" then
-        ui.footer:SetText((A.store.settings.instances and "Alerts in all zones" or "Open-world alerts") .. " · " .. A.store.settings.cooldown .. "s cooldown")
-    elseif view == "friends" then
-        ui.footer:SetText("")
+    ctx.ui.cooldownLabel:SetText(A.store.settings.cooldown .. " seconds")
+    if ctx.ui.cooldown:GetValue() ~= A.store.settings.cooldown then ctx.ui.cooldown:SetValue(A.store.settings.cooldown) end
+    if ctx.view == "alerts" then
+        local places = {}
+        if A.store.settings.world ~= false then places[#places + 1] = "World" end
+        if A.store.settings.battlegrounds then places[#places + 1] = "BG" end
+        if A.store.settings.instances then places[#places + 1] = "Arenas" end
+        ctx.ui.footer:SetText((#places > 0 and table.concat(places, " · ") or "No alert places") .. " · " .. A.store.settings.cooldown .. "s cooldown")
+    elseif ctx.view == "friends" then
+        local note = ctx.syncNote()
+        ctx.ui.footer:SetText(note)
+        if ctx.ui.syncHealth then ctx.ui.syncHealth:SetText(note) end
+        if ctx.ui.syncNote then ctx.ui.syncNote:SetText(note) end
+        if ctx.ui.trustCmd and A.me and A.plain(A.me.name, "string") then
+            ctx.ui.trustCmd:SetText("/fv trust " .. A.me.name)
+        end
+        if ctx.ui.gameFriendButtons and A.gameFriends then
+            local picks = A.gameFriends()
+            for i, b in ipairs(ctx.ui.gameFriendButtons) do
+                local who = picks[i]
+                if who then
+                    b.friendName = who.name
+                    b:SetText(UI.shorten(who.name, 28))
+                    b:Show()
+                else
+                    b.friendName = nil
+                    b:Hide()
+                end
+            end
+            if ctx.ui.gameFriendEmpty then ctx.ui.gameFriendEmpty:SetShown(#picks == 0) end
+        end
     else
-        ui.footer:SetText("")
+        ctx.ui.footer:SetText("")
     end
-    if ui.syncNote then ui.syncNote:SetText(syncNote()) end
+    if ctx.ui.syncNote then ctx.ui.syncNote:SetText(ctx.syncNote()) end
+end
+
+ctx.refreshAttackers = function()
+    if not ctx.ui.attackerLabel then return end
+    local place = A.listPlace()
+    local recent = A.recentAttackers and A.recentAttackers(place) or {}
+    local unlisted = {}
+    for i = 1, #recent do
+        local row = recent[i]
+        local slot = A.slotKey(row.key, row.place)
+        local mine = A.store.reports[A.me.key] and A.store.reports[A.me.key][slot]
+        if not (type(mine) == "table" and not mine.deleted) then
+            unlisted[#unlisted + 1] = row
+        end
+    end
+    local showAttackers = onList() and #unlisted > 0
+    ctx.ui.attackerLabel:SetShown(showAttackers)
+    for i = 1, #ctx.attackerButtons do
+        local b = ctx.attackerButtons[i]
+        local row = unlisted[i]
+        b:SetShown(showAttackers and row ~= nil)
+        if row then
+            b.row = row
+            b:SetText(UI.shorten(row.name, 12))
+        end
+    end
+    -- Keep history clear of the attacker strip; use the leftover editor height when free.
+    if ctx.ui.historyTitle and ctx.ui.historyScroll then
+        ctx.ui.historyTitle:ClearAllPoints()
+        ctx.ui.historyScroll:ClearAllPoints()
+        if showAttackers then
+            ctx.ui.historyTitle:SetPoint("TOPLEFT", 12, -258)
+            ctx.ui.historyScroll:SetPoint("TOPLEFT", 12, -274)
+            ctx.ui.historyScroll:SetSize(284, 56)
+        else
+            ctx.ui.historyTitle:SetPoint("TOPLEFT", 12, -218)
+            ctx.ui.historyScroll:SetPoint("TOPLEFT", 12, -234)
+            ctx.ui.historyScroll:SetSize(284, 102)
+        end
+    end
 end
 
 local function buildEnemies()
-    local p = pages.enemies
-    local list = box(p, 16, 112, 360, 336)
-    ui.search = edit(list, 10, 10, 210, 96)
-    tip(ui.search, "Search blacklist", "Find an enemy, a reporting friend, or words in a reason.")
-    ui.search:SetScript("OnTextChanged", function() page = 1; A.refresh() end)
-    placeholder(ui.search, "Search names or reasons...")
-    ui.clearSearch = button(list, "Clear search", 210, 10, 106, function() ui.search:SetText("") end)
-    ui.search:SetWidth(192)
+    local p = ctx.pages.enemies
+    local list = UI.box(p, 16, 112, 360, 336)
+    ctx.ui.search = UI.edit(list, 10, 10, 210, 96)
+    UI.tip(ctx.ui.search, "Search blacklist", "Find an enemy, a reporting friend, or words in a reason.")
+    ctx.ui.search:SetScript("OnTextChanged", function() ctx.page = 1; A.refresh() end)
+    UI.placeholder(ctx.ui.search, "Search names or reasons...")
+    ctx.ui.clearSearch = UI.button(list, "Clear search", 210, 10, 106, function() ctx.ui.search:SetText("") end)
+    ctx.ui.search:SetWidth(192)
     for i, item in ipairs({ { "ALL", "All" }, { "AVENGE", "Avenge" }, { "AVOID", "Avoid" }, { "WATCH", "Watch" } }) do
         local id, caption = item[1], item[2]
-        local b = button(list, caption, 10 + (i - 1) * 78, 44, 74, function()
-            filter = id
-            page = 1
+        local b = UI.button(list, caption, 10 + (i - 1) * 78, 44, 74, function()
+            ctx.filter = id
+            ctx.page = 1
             A.refresh()
         end)
         b.caption = caption
-        b.mark = rect(b, 4, 22, 66, 2, { 1, .75, .22, 1 }, "OVERLAY")
-        filters[id] = b
+        b.mark = UI.rect(b, 4, 22, 66, 2, { 1, .75, .22, 1 }, "OVERLAY")
+        ctx.filters[id] = b
     end
-    for i = 1, ROWS do
+    for i, item in ipairs({
+        { "UI.MUTED", "Muted", "Only enemies you muted locally. Reports stay." },
+        { "SEEN", "Seen", "Enemies you have sighted on this character (saved locally until you wipe SavedVariables)." },
+    }) do
+        local id, caption, tipText = item[1], item[2], item[3]
+        local b = UI.button(list, caption, 10 + (i - 1) * 78, 70, 74, function()
+            ctx.filter = id
+            ctx.page = 1
+            A.refresh()
+        end)
+        b.caption = caption
+        b.mark = UI.rect(b, 4, 22, 66, 2, { 1, .75, .22, 1 }, "OVERLAY")
+        UI.tip(b, caption, tipText)
+        ctx.filters[id] = b
+    end
+    for i = 1, UI.ROWS do
         local row = CreateFrame("Button", nil, list)
-        row:SetPoint("TOPLEFT", 10, -78 - (i - 1) * 38)
-        row:SetSize(340, 34)
-        row.bg = rect(row, 0, 0, 340, 34, ROW)
-        row.stripe = rect(row, 0, 0, 3, 34, { .72, .18, .12, 1 }, "ARTWORK")
+        row:SetPoint("TOPLEFT", 10, -100 - (i - 1) * 34)
+        row:SetSize(340, 32)
+        row.bg = UI.rect(row, 0, 0, 340, 32, UI.ROW)
+        row.stripe = UI.rect(row, 0, 0, 3, 32, { .72, .18, .12, 1 }, "ARTWORK")
         row.classIcon = row:CreateTexture(nil, "ARTWORK")
         row.classIcon:SetSize(18, 18)
         row.classIcon:SetPoint("TOPLEFT", 8, -8)
@@ -579,17 +614,28 @@ local function buildEnemies()
         row.raceIcon:SetPoint("LEFT", row.classIcon, "RIGHT", 2, 0)
         row.raceIcon:Hide()
         row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-        row.name = text(row, "", 48, 3, 190, "GameFontHighlight", INK)
-        row.detail = text(row, "", 48, 18, 190, "GameFontHighlightSmall", INK_MUTED)
-        row.tag = text(row, "", 248, 10, 84, "GameFontNormalSmall")
+        row.name = UI.text(row, "", 48, 3, 190, "GameFontHighlight", UI.INK)
+        row.detail = UI.text(row, "", 48, 18, 190, "GameFontHighlightSmall", UI.INK_MUTED)
+        row.tag = UI.text(row, "", 248, 10, 84, "GameFontNormalSmall")
         row.name:SetWordWrap(false)
         row.detail:SetWordWrap(false)
         row.tag:SetWordWrap(false)
         row:SetScript("OnEnter", function(self)
             if not self.group or not GameTooltip then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(self.group.name, unpack(GOLD))
+            GameTooltip:SetText(self.group.name, unpack(UI.GOLD))
             GameTooltip:AddLine("Click to read every report and edit your own.", .9, .9, .9, true)
+            local enemyKey = self.group.enemyKey
+            if not enemyKey and self.group.reports and self.group.reports[1] then
+                enemyKey = A.splitSlot(self.group.reports[1].key)
+            end
+            local seen = enemyKey and A.sightingFor and A.sightingFor(enemyKey, self.group.place or A.listPlace())
+            local when = A.formatSeenWhen and A.formatSeenWhen(seen)
+            if when then
+                local line = "Last seen " .. when
+                if seen.zone ~= "" then line = line .. " · " .. seen.zone end
+                GameTooltip:AddLine(line, .72, .68, .58, true)
+            end
             GameTooltip:Show()
         end)
         row:SetScript("OnLeave", function()
@@ -598,235 +644,130 @@ local function buildEnemies()
         row:SetScript("OnClick", function(self)
             if self.group then selectEnemy(self.group) end
         end)
-        rows[i] = row
+        ctx.rows[i] = row
     end
-    ui.empty = CreateFrame("Frame", nil, list)
-    ui.empty:SetPoint("TOPLEFT", 18, -130)
-    ui.empty:SetSize(290, 140)
-    ui.emptyTitle = text(ui.empty, "", 0, 0, 280, "GameFontNormalLarge", GOLD)
-    ui.emptyBody = text(ui.empty, "", 0, 32, 280, "GameFontHighlight", INK_MUTED)
-    ui.prev = button(list, "Previous", 8, 316, 72, function() page = page - 1; A.refresh() end)
-    ui.pagination = text(list, "", 84, 322, 70, "GameFontHighlightSmall", INK_MUTED)
-    ui.reveal = button(list, "Show in list", 152, 316, 100, showInList)
-    ui.next = button(list, "Next", 256, 316, 64, function() page = page + 1; A.refresh() end)
+    ctx.ui.empty = CreateFrame("Frame", nil, list)
+    ctx.ui.empty:SetPoint("TOPLEFT", 18, -148)
+    ctx.ui.empty:SetSize(290, 140)
+    ctx.ui.emptyTitle = UI.text(ctx.ui.empty, "", 0, 0, 280, "GameFontNormalLarge", UI.GOLD)
+    ctx.ui.emptyBody = UI.text(ctx.ui.empty, "", 0, 32, 280, "GameFontHighlight", UI.INK_MUTED)
+    ctx.ui.emptyFriends = UI.button(ctx.ui.empty, "Open Friends", 0, 78, 140, function()
+        ctx.switch("friends")
+    end, "primary")
+    ctx.ui.emptyFriends:Hide()
+    ctx.ui.prev = UI.button(list, "Previous", 8, 316, 72, function() ctx.page = ctx.page - 1; A.refresh() end)
+    ctx.ui.pagination = UI.text(list, "", 84, 322, 70, "GameFontHighlightSmall", UI.INK_MUTED)
+    ctx.ui.reveal = UI.button(list, "Show in list", 152, 316, 100, showInList)
+    ctx.ui.next = UI.button(list, "Next", 256, 316, 64, function() ctx.page = ctx.page + 1; A.refresh() end)
 
-    local e = box(p, 388, 112, 316, 336)
-    ui.editorClass = e:CreateTexture(nil, "ARTWORK")
-    ui.editorClass:SetSize(20, 20)
-    ui.editorClass:SetPoint("TOPLEFT", 12, -8)
-    ui.editorClass:Hide()
-    ui.editorRace = e:CreateTexture(nil, "ARTWORK")
-    ui.editorRace:SetSize(20, 20)
-    ui.editorRace:SetPoint("LEFT", ui.editorClass, "RIGHT", 3, 0)
-    ui.editorRace:Hide()
-    ui.editorTitle = text(e, "Add your report", 58, 10, 270, "GameFontNormal", GOLD)
-    ui.editorTitle:SetWordWrap(false)
-    text(e, "Enemy full name", 12, 30, 300, "GameFontHighlightSmall", INK_MUTED)
-    ui.name = edit(e, 12, 44, 290, 64)
-    ui.name:SetScript("OnTextChanged", function(_, user)
-        if user and not filling then
-            selected, selectedRealm, armedWithdraw = nil, nil, nil
+    local e = UI.box(p, 388, 112, 316, 336)
+    ctx.ui.editorClass = e:CreateTexture(nil, "ARTWORK")
+    ctx.ui.editorClass:SetSize(20, 20)
+    ctx.ui.editorClass:SetPoint("TOPLEFT", 12, -8)
+    ctx.ui.editorClass:Hide()
+    ctx.ui.editorRace = e:CreateTexture(nil, "ARTWORK")
+    ctx.ui.editorRace:SetSize(20, 20)
+    ctx.ui.editorRace:SetPoint("LEFT", ctx.ui.editorClass, "RIGHT", 3, 0)
+    ctx.ui.editorRace:Hide()
+    ctx.ui.editorTitle = UI.text(e, "Add your report", 58, 10, 270, "GameFontNormal", UI.GOLD)
+    ctx.ui.editorTitle:SetWordWrap(false)
+    UI.text(e, "Enemy full name", 12, 30, 300, "GameFontHighlightSmall", UI.INK_MUTED)
+    ctx.ui.name = UI.edit(e, 12, 44, 290, 64)
+    ctx.ui.name:SetScript("OnTextChanged", function(_, user)
+        if user and not ctx.filling then
+            ctx.selected, ctx.selectedRealm, ctx.armedWithdraw = nil, nil, nil
             A.refresh()
         end
     end)
-    ui.name:SetScript("OnEnterPressed", function() ui.note:SetFocus() end)
-    ui.name:SetScript("OnTabPressed", function() ui.note:SetFocus() end)
-    placeholder(ui.name, "First name and surname")
-    for i, s in ipairs(STANCES) do
-        local b = button(e, s.label, 12 + (i - 1) * 102, 78, 96, function()
-            mode = s.id
+    ctx.ui.name:SetScript("OnEnterPressed", function() ctx.ui.note:SetFocus() end)
+    ctx.ui.name:SetScript("OnTabPressed", function() ctx.ui.note:SetFocus() end)
+    UI.placeholder(ctx.ui.name, "First name and surname")
+    for i, s in ipairs(UI.STANCES) do
+        local b = UI.button(e, s.label, 12 + (i - 1) * 102, 78, 96, function()
+            ctx.mode = s.id
             A.refresh()
         end)
-        b.mark = rect(b, 5, 22, 86, 2, s.color, "OVERLAY")
-        tip(b, s.label, s.hint)
-        stanceButtons[s.id] = b
+        b.mark = UI.rect(b, 5, 22, 86, 2, s.color, "OVERLAY")
+        UI.tip(b, s.label, s.hint)
+        ctx.stanceButtons[s.id] = b
     end
-    ui.stanceHint = text(e, STANCES[1].hint, 12, 106, 300, "GameFontHighlightSmall", STANCES[1].color)
-    text(e, "Reason (optional)", 12, 124, 300, "GameFontHighlightSmall", INK_MUTED)
+    ctx.ui.stanceHint = UI.text(e, UI.STANCES[1].hint, 12, 106, 300, "GameFontHighlightSmall", UI.STANCES[1].color)
+    UI.text(e, "Reason (optional)", 12, 124, 300, "GameFontHighlightSmall", UI.INK_MUTED)
     local noteScroll = CreateFrame("ScrollFrame", nil, e)
     noteScroll:SetPoint("TOPLEFT", 12, -138)
     noteScroll:SetSize(290, 40)
-    rect(noteScroll, 0, 0, 290, 40, { .05, .05, .06, 1 })
-    ui.note = edit(noteScroll, 0, 0, 290, 96, true)
-    noteScroll:SetScrollChild(ui.note)
-    ui.note:SetScript("OnTabPressed", function() ui.name:SetFocus() end)
-    ui.note:SetScript("OnCursorChanged", function(_, _, y, _, height)
+    UI.rect(noteScroll, 0, 0, 290, 40, { .05, .05, .06, 1 })
+    ctx.ui.note = UI.edit(noteScroll, 0, 0, 290, 96, true)
+    noteScroll:SetScrollChild(ctx.ui.note)
+    ctx.ui.note:SetScript("OnTabPressed", function() ctx.ui.name:SetFocus() end)
+    ctx.ui.note:SetScript("OnCursorChanged", function(_, _, y, _, height)
         local current = noteScroll:GetVerticalScroll()
         if not A.plain(current, "number") then current = 0 end
         local bottom = -y + height
         if -y < current then noteScroll:SetVerticalScroll(-y)
         elseif bottom > current + 40 then noteScroll:SetVerticalScroll(bottom - 40) end
     end)
-    ui.save = button(e, "Save report", 12, 186, 146, saveReport, "primary")
-    ui.withdraw = button(e, "Withdraw mine", 168, 186, 148, function()
+    ctx.ui.save = UI.button(e, "Save report", 12, 186, 100, saveReport, "primary")
+    ctx.ui.withdraw = UI.button(e, "Withdraw", 118, 186, 90, function()
         local _, lookup = groups()
-        local own = ownReport(selected and lookup[selected])
+        local own = ownReport(ctx.selected and lookup[ctx.selected])
         if not own then return end
-        if armedWithdraw ~= selected then
-            armedWithdraw = selected
-            feedback("Click Confirm removal to withdraw only your report.")
+        if ctx.armedWithdraw ~= ctx.selected then
+            ctx.armedWithdraw = ctx.selected
+            ctx.feedback("Click Confirm removal to withdraw only your report.")
             A.refresh()
             return
         end
-        local ok, err = A.report(own.name, own.note, own.mode, true, own.realm)
-        armedWithdraw = nil
-        feedback(ok and "Your report was withdrawn. Your friends' reports stay." or err, not ok)
-        if ok then ui.note:SetText("") end
+        local ok, err = A.report(own.name, own.note, own.mode, true, own.realm, own.place or A.listPlace())
+        ctx.armedWithdraw = nil
+        ctx.feedback(ok and "Your report was withdrawn. Your friends' reports stay." or err, not ok)
+        if ok then ctx.ui.note:SetText("") end
         A.refresh()
     end, "danger")
-    tip(ui.withdraw, "Withdraw your report", "Only your current character's report is removed. Friends' reports remain. Click twice to confirm.")
-    ui.historyTitle = text(e, "Reports from trusted friends", 12, 218, 300, "GameFontNormalSmall", GOLD)
-    local scroll = CreateFrame("ScrollFrame", nil, e, "UIPanelScrollFrameTemplate")
-    ui.historyScroll = scroll
-    scroll:SetPoint("TOPLEFT", 12, -234)
-    scroll:SetSize(284, 100)
-    ui.historyChild = CreateFrame("Frame", nil, scroll)
-    ui.historyChild:SetSize(284, 90)
-    scroll:SetScrollChild(ui.historyChild)
-    ui.historyEmpty = text(ui.historyChild, "", 0, 0, 270, "GameFontHighlightSmall", INK_MUTED)
-end
-
-local function buildFriends()
-    local p = pages.friends
-    local list = box(p, 16, 112, 360, 336)
-    text(list, "These characters exchange reports with you.", 12, 8, 330, "GameFontHighlightSmall", INK_MUTED)
-    for i = 1, 7 do
-        local row = CreateFrame("Frame", nil, list)
-        row:SetPoint("TOPLEFT", 10, -32 - (i - 1) * 36)
-        row:SetSize(340, 32)
-        rect(row, 0, 0, 340, 32, ROW)
-        row.name = text(row, "", 8, 2, 210, "GameFontHighlight", INK)
-        row.detail = text(row, "", 8, 16, 210, "GameFontHighlightSmall", INK_MUTED)
-        row.name:SetWordWrap(false)
-        row.detail:SetWordWrap(false)
-        row:EnableMouse(true)
-        row:SetScript("OnEnter", function(self)
-            if self.peer and GameTooltip then
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(self.peer.name)
-                GameTooltip:Show()
-            end
-        end)
-        row:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-        row.remove = button(row, "Remove", 268, 5, 64, function()
-            if not row.peer then return end
-            if armedFriend ~= row.peer.key then
-                armedFriend = row.peer.key
-                feedback("Click Confirm to stop sharing and hide this friend's reports.")
-                A.refresh()
-                return
-            end
-            local name = row.peer.name
-            A.untrust(name)
-            armedFriend = nil
-            A.refresh()
-            feedback(name .. " removed from trusted friends.")
-        end, "danger")
-        friendRows[i] = row
-    end
-    ui.friendEmpty = text(list, "No trusted friends yet.\nAdd a full name on the right.", 16, 48, 320, "GameFontHighlight", INK_MUTED)
-    ui.friendPrev = button(list, "Previous", 8, 316, 72, function() friendPage = friendPage - 1; A.refresh() end)
-    ui.friendPagination = text(list, "", 88, 322, 140, "GameFontHighlightSmall", INK_MUTED)
-    ui.friendNext = button(list, "Next", 236, 316, 80, function() friendPage = friendPage + 1; A.refresh() end)
-
-    local setup = box(p, 388, 112, 316, 336)
-    text(setup, "Add a trusted friend", 12, 8, 300, "GameFontNormal", GOLD)
-    ui.friendName = edit(setup, 12, 32, 290, 112)
-    placeholder(ui.friendName, "First name and surname")
-    local function addFriend()
-        local who = A.sender(ui.friendName:GetText())
-        if not who or not who.name:find("%s") then
-            feedback("Enter your friend's first name and surname.", true)
+    UI.tip(ctx.ui.withdraw, "Withdraw your report", "Only your current character's report is removed. Friends' reports remain. Click twice to confirm.")
+    ctx.ui.mute = UI.button(e, "Mute alerts", 214, 186, 100, function()
+        local _, lookup = groups()
+        local g = ctx.selected and lookup[ctx.selected]
+        if not g then
+            ctx.feedback("Select an enemy first.", true)
             return
         end
-        local ok, err = A.trust(ui.friendName:GetText())
-        feedback(ok and "Friend added. They must add your character too." or err, not ok)
-        if ok then
-            ui.friendName:SetText("")
-            ui.friendName:ClearFocus()
-            A.sync()
-            if ui.syncNote then ui.syncNote:SetText(syncNote()) end
+        local enemyKey = g.enemyKey or (g.reports[1] and A.splitSlot(g.reports[1].key))
+        if not enemyKey then return end
+        if A.isIgnored(enemyKey) then
+            local ok, err = A.unignoreEnemy(g.name)
+            ctx.feedback(ok and "Alerts unmuted for " .. g.name .. "." or err, not ok)
+        else
+            local ok, err = A.ignoreEnemy(g.name)
+            ctx.feedback(ok and "Alerts muted for " .. g.name .. " (reports stay)." or err, not ok)
         end
-    end
-    button(setup, "Add trusted friend", 12, 66, 290, addFriend, "primary")
-    ui.friendName:SetScript("OnEnterPressed", addFriend)
-    text(setup, "They add this character too. Sharing is a whisper, not Battle.net.", 12, 100, 290, "GameFontHighlightSmall", INK_MUTED)
-    text(setup, A.me.name, 12, 132, 290, "GameFontNormal", GOLD)
-    ui.sync = button(setup, "Sync with friends", 12, 168, 290, function()
-        A.sync()
-        local note = syncNote()
-        feedback(note, A.plain(A.lastSendError, "string") and A.lastSendError ~= "")
-        if ui.syncNote then ui.syncNote:SetText(note) end
+        A.refresh()
     end)
-    ui.syncNote = text(setup, "", 12, 202, 290, "GameFontHighlightSmall", INK_MUTED)
-end
-
-local function buildAlerts()
-    local p = pages.alerts
-    local settings = box(p, 16, 112, 360, 336)
-    text(settings, "Sound and banner", 12, 8, 300, "GameFontNormal", GOLD)
-    text(settings, "Where it can see them", 12, 188, 300, "GameFontNormal", GOLD)
-
-    ui.checks = {}
-    for i, spec in ipairs({
-        { "sound", "Play a warning sound", "The sound chosen on the right, on the Master channel." },
-        { "banner", "Show an on-screen warning", "Six-second banner with the enemy and one reason." },
-        { "instances", "Also warn inside instances", "Off by default. Client limits still apply." },
-        { "minimapButton", "Show minimap button", "Left-click opens the window. Right-click opens Friends. Drag to move." },
-    }) do
-        local c = CreateFrame("CheckButton", nil, settings, "UICheckButtonTemplate")
-        c:SetPoint("TOPLEFT", 10, -81 - (i - 1) * 52)
-        c:SetSize(26, 26)
-        text(c, spec[2], 30, 2, 270, "GameFontHighlight", INK)
-        text(c, spec[3], 30, 18, 270, "GameFontHighlightSmall", INK_MUTED)
-        c:SetScript("OnClick", function(self)
-            A.store.settings[spec[1]] = self:GetChecked() == true
-            A.changed()
+    UI.tip(ctx.ui.mute, "Mute alerts", "Stops sound/banner/party announce for this enemy. Reports stay. Local only — not shared.")
+    ctx.ui.attackerLabel = UI.text(e, "Recent attackers", 12, 212, 300, "GameFontNormalSmall", UI.GOLD)
+    ctx.ui.attackerLabel:Hide()
+    for i = 1, 3 do
+        local b = UI.button(e, "", 12 + (i - 1) * 100, 228, 96, function(self)
+            local row = self.row
+            if not row then return end
+            A.prepareEnemyDraft({
+                name = row.name,
+                realm = row.realm,
+                key = row.key,
+            }, row.why == "Death recap" and "Killed me" or row.why, "AVENGE", row.place)
         end)
-        ui.checks[spec[1]] = c
+        b:Hide()
+        ctx.attackerButtons[i] = b
     end
-    local help = box(p, 388, 112, 316, 336)
-    text(help, "Chat", 12, 8, 280, "GameFontNormal", GOLD)
-    text(help, "Chat always prints the enemy and stance. The reason stays on the banner.", 12, 30, 290, "GameFontHighlightSmall", INK_MUTED)
-    text(help, "Warning sound", 12, 68, 200, "GameFontNormal", GOLD)
-    ui.soundButtons = {}
-    for i, sound in ipairs(A.ALERT_SOUNDS) do
-        local col = (i - 1) % 3
-        local row = math.floor((i - 1) / 3)
-        local b = button(help, sound.label, 12 + col * 98, 90 + row * 28, 92, function()
-            A.store.settings.alertSound = sound.id
-            A.playSound()
-            A.changed()
-        end)
-        b.caption = sound.label
-        b.soundId = sound.id
-        b.mark = rect(b, 8, 20, 76, 2, GOLD, "OVERLAY")
-        b.mark:Hide()
-        ui.soundButtons[sound.id] = b
-    end
-    text(help, "Repeat the same enemy", 12, 158, 180, "GameFontNormal", GOLD)
-    ui.cooldownLabel = text(help, "", 198, 158, 100, "GameFontNormal", GOLD)
-    local slider = CreateFrame("Slider", nil, help, "OptionsSliderTemplate")
-    slider:SetPoint("TOPLEFT", 16, -186)
-    slider:SetSize(250, 18)
-    slider:SetMinMaxValues(10, 600)
-    slider:SetValueStep(10)
-    slider:SetObeyStepOnDrag(true)
-    slider:SetScript("OnValueChanged", function(_, value)
-        local v = math.max(10, math.min(600, math.floor(value + .5)))
-        if A.store.settings.cooldown ~= v then
-            A.store.settings.cooldown = v
-            A.changed()
-        end
-    end)
-    ui.cooldown = slider
-    text(help, "10 seconds", 12, 210, 100, "GameFontHighlightSmall", INK_MUTED)
-    text(help, "10 minutes", 180, 210, 100, "GameFontHighlightSmall", INK_MUTED)
-    text(help, "Nameplates give the earliest warning. Target, focus, and mouseover count too.", 12, 232, 290, "GameFontHighlightSmall", INK_MUTED)
-    button(help, "Preview alert", 12, 278, 290, function()
-        A.testAlert()
-        feedback("Test alert played using your current settings.")
-    end, "primary")
+    ctx.ui.historyTitle = UI.text(e, "Reports from trusted friends", 12, 218, 300, "GameFontNormalSmall", UI.GOLD)
+    local scroll = CreateFrame("ScrollFrame", nil, e, "UIPanelScrollFrameTemplate")
+    ctx.ui.historyScroll = scroll
+    scroll:SetPoint("TOPLEFT", 12, -234)
+    scroll:SetSize(284, 90)
+    ctx.ui.historyChild = CreateFrame("Frame", nil, scroll)
+    ctx.ui.historyChild:SetSize(284, 80)
+    scroll:SetScrollChild(ctx.ui.historyChild)
+    ctx.ui.historyEmpty = UI.text(ctx.ui.historyChild, "", 0, 0, 270, "GameFontHighlightSmall", UI.INK_MUTED)
 end
 
 local function dressMetal(frame)
@@ -865,25 +806,75 @@ local function dressMetal(frame)
     end
 end
 
-local function build()
-    panel = CreateFrame("Frame", "ForeverVendettaWindow", UIParent, "BasicFrameTemplateWithInset")
-    panel:SetSize(W, H)
-    panel:SetPoint("CENTER")
-    fit(panel, W, H)
-    if panel.TitleText then panel.TitleText:SetText("Forever Vendetta") end
-    panel:SetMovable(true)
-    panel:EnableMouse(true)
-    local drag = CreateFrame("Frame", nil, panel)
+function A.close()
+    if not ctx.panel then return end
+    ctx.panel:Hide()
+    for _, p in pairs(ctx.pages) do p:Hide() end
+end
+
+local function wireClose(close)
+    if type(close) ~= "table" then return end
+    if close.SetFrameLevel then
+        local level = 1
+        if ctx.panel and type(ctx.panel.GetFrameLevel) == "function" then
+            local got = ctx.panel:GetFrameLevel()
+            if type(got) == "number" then level = got end
+        end
+        close:SetFrameLevel(level + 20)
+    end
+    if close.EnableMouse then close:EnableMouse(true) end
+    if close.Show then close:Show() end
+    if close.SetScript then
+        close:SetScript("OnClick", function() A.close() end)
+    end
+end
+
+ctx.build = function()
+    ctx.panel = CreateFrame("Frame", "ForeverVendettaWindow", UIParent, "BasicFrameTemplateWithInset")
+    ctx.panel:SetSize(UI.W, UI.H)
+    ctx.panel:SetPoint("CENTER")
+    UI.fit(ctx.panel, UI.W, UI.H)
+    local ver = (A.addonVersion and A.addonVersion()) or A.VERSION or ""
+    if ctx.panel.TitleText then
+        ctx.panel.TitleText:SetText(ver ~= "" and ("Forever Vendetta  ·  " .. ver) or "Forever Vendetta")
+    end
+    ctx.panel:SetMovable(true)
+    ctx.panel:EnableMouse(true)
+    ctx.panel:SetToplevel(true)
+    if ctx.panel.SetClampedToScreen then ctx.panel:SetClampedToScreen(true) end
+
+    -- Keep the title drag off the close button. Covering that X is what makes the window feel stuck.
+    local drag = CreateFrame("Frame", nil, ctx.panel)
     drag:SetPoint("TOPLEFT", 8, -2)
-    drag:SetSize(W - 40, 26)
+    drag:SetPoint("TOPRIGHT", -36, -2)
+    drag:SetHeight(24)
     drag:EnableMouse(true)
     drag:RegisterForDrag("LeftButton")
-    drag:SetScript("OnDragStart", function() panel:StartMoving() end)
-    drag:SetScript("OnDragStop", function() panel:StopMovingOrSizing() end)
-    if UISpecialFrames then table.insert(UISpecialFrames, "ForeverVendettaWindow") end
+    drag:SetScript("OnDragStart", function() ctx.panel:StartMoving() end)
+    drag:SetScript("OnDragStop", function() ctx.panel:StopMovingOrSizing() end)
 
-    dressMetal(panel)
-    local host = type(panel.Inset) == "table" and panel.Inset or panel
+    local close = ctx.panel.CloseButton
+    if type(close) ~= "table" then
+        close = CreateFrame("Button", nil, ctx.panel, "UIPanelCloseButton")
+        close:SetPoint("TOPRIGHT", 2, 2)
+        ctx.panel.CloseButton = close
+    end
+    wireClose(close)
+
+    if UISpecialFrames then table.insert(UISpecialFrames, "ForeverVendettaWindow") end
+    -- Forever may not always route Escape through UISpecialFrames; close ourselves too.
+    if ctx.panel.EnableKeyboard then ctx.panel:EnableKeyboard(true) end
+    ctx.panel:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            A.close()
+            if self.SetPropagateKeyboardInput then self:SetPropagateKeyboardInput(false) end
+        elseif self.SetPropagateKeyboardInput then
+            self:SetPropagateKeyboardInput(true)
+        end
+    end)
+
+    dressMetal(ctx.panel)
+    local host = type(ctx.panel.Inset) == "table" and ctx.panel.Inset or ctx.panel
     local wash = host:CreateTexture(nil, "BACKGROUND")
     wash:SetColorTexture(.05, .045, .04, 1)
     wash:SetPoint("TOPLEFT", 2, -2)
@@ -895,21 +886,39 @@ local function build()
     if rock.SetHorizTile then rock:SetHorizTile(true) end
     if rock.SetVertTile then rock:SetVertTile(true) end
 
-    ui.heading = text(panel, "Enemy blacklist", 20, 34, 280, "GameFontNormal", GOLD)
-    ui.summary = text(panel, "", 20, 54, 420, "GameFontHighlightSmall", INK_MUTED)
-    ui.addEnemy = button(panel, "Add enemy", 468, 34, 112, function() switch("enemies"); newReport() end, "primary")
-    ui.addTarget = button(panel, "Add target", 588, 34, 112, useTarget, "primary")
+    ctx.ui.heading = UI.text(ctx.panel, "Enemy blacklist", 20, 34, 280, "GameFontNormal", UI.GOLD)
+    ctx.ui.summary = UI.text(ctx.panel, "", 20, 54, 420, "GameFontHighlightSmall", UI.INK_MUTED)
+    ctx.ui.addEnemy = UI.button(ctx.panel, "Add enemy", 468, 34, 112, function()
+        if not onList() then ctx.switch("world") end
+        newReport()
+    end, "primary")
+    ctx.ui.addTarget = UI.button(ctx.panel, "Add target", 588, 34, 112, useTarget, "primary")
 
-    for i, item in ipairs({ { "enemies", "Blacklist" }, { "friends", "Friends" }, { "alerts", "Alerts" } }) do
+    ctx.pages.enemies = CreateFrame("Frame", nil, ctx.panel)
+    ctx.pages.enemies:SetPoint("TOPLEFT", 0, -30)
+    ctx.pages.enemies:SetSize(UI.W, UI.H - 30)
+    if ctx.pages.enemies.EnableMouse then ctx.pages.enemies:EnableMouse(false) end
+    ctx.pages.enemies:Hide()
+
+    for i, item in ipairs({
+        { "world", "World" },
+        { "battlegrounds", "Battlegrounds" },
+        { "friends", "Friends" },
+        { "alerts", "Alerts" },
+    }) do
         local id, caption = item[1], item[2]
-        local p = CreateFrame("Frame", id == "friends" and "ForeverVendettaFriends" or nil, panel)
-        p:SetPoint("TOPLEFT", 0, 0)
-        p:SetSize(W, H)
-        p:Hide()
-        pages[id] = p
-        local b = CreateFrame("Button", nil, panel)
-        b:SetPoint("TOPLEFT", 18 + (i - 1) * 128, -72)
-        b:SetSize(120, 32)
+        local p
+        if id == "friends" or id == "alerts" then
+            p = CreateFrame("Frame", id == "friends" and "ForeverVendettaFriends" or nil, ctx.panel)
+            p:SetPoint("TOPLEFT", 0, -30)
+            p:SetSize(UI.W, UI.H - 30)
+            if p.EnableMouse then p:EnableMouse(false) end
+            p:Hide()
+            ctx.pages[id] = p
+        end
+        local b = CreateFrame("Button", nil, ctx.panel)
+        b:SetPoint("TOPLEFT", 18 + (i - 1) * 100, -72)
+        b:SetSize(96, 32)
         b.caption = caption
         b.classic = true
         b.bg = b:CreateTexture(nil, "BACKGROUND")
@@ -919,112 +928,44 @@ local function build()
         label:SetPoint("CENTER", 0, 2)
         b:SetFontString(label)
         b:SetText(caption)
-        b:SetScript("OnClick", function() switch(id) end)
-        nav[id] = b
+        b:SetScript("OnClick", function() ctx.switch(id) end)
+        ctx.nav[id] = b
     end
 
-    rect(panel, 376, 112, 1, 336, { .45, .34, .18, .45 }, "ARTWORK")
+    UI.rect(ctx.panel, 376, 112, 1, 336, { .45, .34, .18, .45 }, "ARTWORK")
 
     buildEnemies()
-    buildFriends()
-    buildAlerts()
-    ui.feedback = text(panel, "", 20, 458, 360, "GameFontHighlightSmall", GOLD)
-    ui.footer = text(panel, "", 390, 458, 310, "GameFontHighlightSmall", INK_MUTED)
-    panel:SetScript("OnHide", function()
-        for _, p in pairs(pages) do p:Hide() end
-        armedFriend, armedWithdraw = nil, nil
+    A.buildFriendsUI(ctx)
+    A.buildAlertsUI(ctx)
+    ctx.ui.feedback = UI.text(ctx.panel, "", 20, 458, 340, "GameFontHighlightSmall", UI.GOLD)
+    ctx.ui.footer = UI.text(ctx.panel, "", 360, 458, 280, "GameFontHighlightSmall", UI.INK_MUTED)
+    ctx.ui.version = UI.text(ctx.panel, ver ~= "" and ("v" .. ver) or "", 650, 458, 50, "GameFontHighlightSmall", UI.INK_MUTED)
+    ctx.panel:SetScript("OnHide", function()
+        for _, p in pairs(ctx.pages) do p:Hide() end
+        ctx.armedFriend, ctx.armedWithdraw = nil, nil
     end)
-    panel:Hide()
+    -- Re-assert close after children so nothing ends up above the X.
+    wireClose(ctx.panel.CloseButton)
+    ctx.panel:Hide()
 end
 
 function A.toggle()
-    if not panel then build() end
-    if panel:IsShown() then
-        panel:Hide()
-        for _, p in pairs(pages) do p:Hide() end
+    if not ctx.panel then ctx.build() end
+    if ctx.panel:IsShown() then
+        A.close()
     else
-        panel:Show()
-        switch(view)
+        ctx.panel:Show()
+        ctx.switch(ctx.view)
     end
 end
 
 function A.toggleFriends()
-    if not panel then build() end
-    if panel:IsShown() and view == "friends" then
-        panel:Hide()
-        for _, p in pairs(pages) do p:Hide() end
+    if not ctx.panel then ctx.build() end
+    if ctx.panel:IsShown() and ctx.view == "friends" then
+        A.close()
     else
-        panel:Show()
-        switch("friends")
+        ctx.panel:Show()
+        ctx.switch("friends")
     end
 end
 
-function A.showBanner(title, detail, preview, mode, face)
-    if not banner then
-        banner = CreateFrame("Frame", nil, UIParent)
-        banner:SetSize(620, 86)
-        banner:SetPoint("TOP", 0, -70)
-        fit(banner, 620, 86)
-        banner:SetFrameStrata("HIGH")
-        banner:EnableMouse(false)
-        local plate = banner:CreateTexture(nil, "BACKGROUND")
-        plate:SetAllPoints()
-        plate:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock")
-        if plate.SetHorizTile then plate:SetHorizTile(true) end
-        if plate.SetVertTile then plate:SetVertTile(true) end
-        rect(banner, 0, 0, 620, 86, { .04, .04, .045, .55 })
-        local metal = "Interface\\FrameGeneral\\UIFrameMetalHorizontal"
-        local top = banner:CreateTexture(nil, "ARTWORK")
-        top:SetTexture(metal)
-        top:SetPoint("TOPLEFT")
-        top:SetPoint("TOPRIGHT")
-        top:SetHeight(10)
-        if top.SetTexCoord then top:SetTexCoord(0, 1, 0.263671875, 0.357421875) end
-        local bottom = banner:CreateTexture(nil, "ARTWORK")
-        bottom:SetTexture(metal)
-        bottom:SetPoint("BOTTOMLEFT")
-        bottom:SetPoint("BOTTOMRIGHT")
-        bottom:SetHeight(10)
-        if bottom.SetTexCoord then bottom:SetTexCoord(0, 1, 0.001953125, 0.259765625) end
-        banner.accent = rect(banner, 0, 0, 4, 86, GOLD, "ARTWORK")
-        banner.classIcon = banner:CreateTexture(nil, "OVERLAY")
-        banner.classIcon:SetSize(28, 28)
-        banner.classIcon:SetPoint("LEFT", 16, 4)
-        banner.classIcon:Hide()
-        banner.raceIcon = banner:CreateTexture(nil, "OVERLAY")
-        banner.raceIcon:SetSize(28, 28)
-        banner.raceIcon:SetPoint("LEFT", banner.classIcon, "RIGHT", 4, 0)
-        banner.raceIcon:Hide()
-        banner.heading = text(banner, "", 18, 8, 560, "GameFontNormalSmall", MUTED)
-        banner.title = text(banner, "", 18, 26, 560, "GameFontNormalLarge", GOLD)
-        banner.detail = text(banner, "", 18, 52, 560, "GameFontHighlightSmall", WHITE)
-        banner.remaining = 0
-        banner:Hide()
-        banner:SetScript("OnUpdate", function(self, dt)
-            self.remaining = (self.remaining or 0) - (dt or 0)
-            self:SetAlpha(math.min(1, math.max(0, self.remaining / .6)))
-            if self.remaining <= 0 then self:Hide() end
-        end)
-    end
-    local color = { 1, .82, .35 }
-    for _, s in ipairs(STANCES) do
-        if s.id == mode then color = s.color break end
-    end
-    banner.accent:SetColorTexture(color[1], color[2], color[3], 1)
-    banner.title:SetTextColor(unpack(color))
-    paintFace(banner.classIcon, banner.raceIcon, face)
-    local shown = (banner.classIcon:IsShown() or banner.raceIcon:IsShown()) and true or false
-    local x = shown and 80 or 18
-    banner.heading:ClearAllPoints()
-    banner.heading:SetPoint("TOPLEFT", x, -8)
-    banner.title:ClearAllPoints()
-    banner.title:SetPoint("TOPLEFT", x, -26)
-    banner.detail:ClearAllPoints()
-    banner.detail:SetPoint("TOPLEFT", x, -52)
-    banner.heading:SetText(preview and "Preview" or "Blacklisted enemy")
-    banner.title:SetText(title)
-    banner.detail:SetText(detail)
-    banner.remaining = 6
-    banner:SetAlpha(1)
-    banner:Show()
-end

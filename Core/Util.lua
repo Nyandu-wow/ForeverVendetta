@@ -59,7 +59,24 @@ function A.print(msg)
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffff7055Vendetta|r: " .. msg) end
 end
 
--- Built-in Classic-era SoundKit ids. Skip later PvP / war-drums kits Forever may not ship.
+-- Keep in sync with ## Version in ForeverVendetta.toc (fallback when metadata APIs are missing).
+A.VERSION = "0.1.40"
+
+function A.addonVersion()
+    local name = "ForeverVendetta"
+    if C_AddOns and type(C_AddOns.GetAddOnMetadata) == "function" then
+        local v = A.call(C_AddOns.GetAddOnMetadata, name, "Version")
+        if A.plain(v, "string") and v ~= "" then return v end
+    end
+    if type(GetAddOnMetadata) == "function" then
+        local v = A.call(GetAddOnMetadata, name, "Version")
+        if A.plain(v, "string") and v ~= "" then return v end
+    end
+    return A.VERSION
+end
+
+-- Built-in Classic-era SoundKit / file ids only. Skip retail kits Forever may not ship.
+-- Custom .ogg in the addon folder is also allowed (PlaySoundFile); do not redistribute ripped Blizzard music.
 A.ALERT_SOUNDS = {
     { id = "raid", label = "Raid", file = 8959, kit = "RAID_WARNING" },
     { id = "ready", label = "Ready", file = 8960, kit = "READY_CHECK" },
@@ -67,6 +84,8 @@ A.ALERT_SOUNDS = {
     { id = "auction", label = "Auction", file = 5274, kit = "AUCTION_WINDOW_OPEN" },
     { id = "level", label = "Level", file = 888 },
     { id = "tell", label = "Tell", file = 3081, kit = "TELL_MESSAGE" },
+    { id = "quest", label = "Quest", file = 878, kit = "IG_QUEST_LIST_COMPLETE" },
+    { id = "coin", label = "Coin", file = 120, kit = "LOOT_WINDOW_COIN_SOUND" },
 }
 
 function A.soundById(id)
